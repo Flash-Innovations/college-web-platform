@@ -32,6 +32,7 @@ export function InstitutionDashboard() {
   const navigate = useNavigate();
 
   const [departments, setDepartments] = useState([]);
+  const [hierarchy, setHierarchy] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(Boolean(user?.needsPasswordReset));
@@ -39,12 +40,14 @@ export function InstitutionDashboard() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [deptRes, profRes] = await Promise.all([
+      const [deptRes, profRes, hierRes] = await Promise.all([
         institutionService.getDepartments().catch(() => ({ departments: [] })),
-        institutionService.getProfile().catch(() => ({ institution: null }))
+        institutionService.getProfile().catch(() => ({ institution: null })),
+        institutionService.getHierarchy().catch(() => ({ institution: null }))
       ]);
       setDepartments(deptRes.departments || []);
       setProfile(profRes.institution || null);
+      setHierarchy(hierRes.institution || null);
     } catch (err) {
       console.error("Failed to load institution data:", err);
       showError("Could not load institution overview");
@@ -59,6 +62,9 @@ export function InstitutionDashboard() {
 
   const totalDepts = departments.length;
   const activeDepts = departments.filter((d) => d.status === "ACTIVE").length;
+  const totalStudents = hierarchy?.totalStudents || 0;
+  const totalPlaced = hierarchy?.totalPlaced || 0;
+  const overallPlacementRate = hierarchy?.overallPlacementRate || 0;
 
   return (
     <div className="space-y-6">
@@ -136,12 +142,12 @@ export function InstitutionDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
-            <Layers className="w-6 h-6" />
+            <Users className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Departments</p>
-            <p className="text-2xl font-black text-slate-900">{totalDepts}</p>
-            <p className="text-[11px] text-slate-500">Configured academic units</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Enrolled</p>
+            <p className="text-2xl font-black text-slate-900">{totalStudents}</p>
+            <p className="text-[11px] text-slate-500">Across all academic units</p>
           </div>
         </Card>
 
@@ -150,9 +156,9 @@ export function InstitutionDashboard() {
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Active Units</p>
-            <p className="text-2xl font-black text-emerald-600">{activeDepts}</p>
-            <p className="text-[11px] text-slate-500">Autonomous placement cells</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Placed</p>
+            <p className="text-2xl font-black text-emerald-600">{totalPlaced}</p>
+            <p className="text-[11px] text-slate-500">Verified campus offers</p>
           </div>
         </Card>
 
@@ -161,20 +167,20 @@ export function InstitutionDashboard() {
             <Building2 className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Institution Code</p>
-            <p className="text-2xl font-black text-slate-900">{profile?.code || "UNIV"}</p>
-            <p className="text-[11px] text-slate-500 truncate">{profile?.city ? `${profile.city}, ${profile.state}` : "Campus Location"}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Placement Rate</p>
+            <p className="text-2xl font-black text-blue-600">{overallPlacementRate}%</p>
+            <p className="text-[11px] text-slate-500">Institutional average</p>
           </div>
         </Card>
 
         <Card className="p-5 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
-            <ShieldCheck className="w-6 h-6" />
+            <Layers className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Tenant Boundary</p>
-            <p className="text-sm font-bold text-slate-900 truncate">Isolated Hierarchy</p>
-            <p className="text-[11px] text-purple-600 font-semibold">Strict Data Separation</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Academic Units</p>
+            <p className="text-2xl font-black text-purple-600">{totalDepts}</p>
+            <p className="text-[11px] text-slate-500">Autonomous departments</p>
           </div>
         </Card>
       </div>

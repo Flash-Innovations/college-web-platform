@@ -77,6 +77,34 @@ export const institutionService = {
   },
 
   /**
+   * Get full institutional hierarchy with multi-tier statistics
+   */
+  async getHierarchy() {
+    return await api.get('/api/institution/hierarchy');
+  },
+
+  /**
+   * Add a new branch under an academic department
+   */
+  async addBranch(departmentId, branchData) {
+    return await api.post(`/api/institution/departments/${departmentId}/branches`, branchData);
+  },
+
+  /**
+   * Update a branch under an academic department
+   */
+  async updateBranch(departmentId, branchId, branchData) {
+    return await api.put(`/api/institution/departments/${departmentId}/branches/${branchId}`, branchData);
+  },
+
+  /**
+   * Delete a branch from an academic department
+   */
+  async deleteBranch(departmentId, branchId) {
+    return await api.delete(`/api/institution/departments/${departmentId}/branches/${branchId}`);
+  },
+
+  /**
    * Get the logged-in department's own profile
    */
   async getDepartmentOwnProfile() {
@@ -90,3 +118,4 @@ export const institutionService = {
     return await api.put('/api/institution/department/profile', departmentData);
   }
 };
+

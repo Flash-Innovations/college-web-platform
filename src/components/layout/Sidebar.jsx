@@ -33,65 +33,49 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
   const { user, role, logout } = useAuth();
   const navigate = useNavigate();
 
-  const studentLinks = [
-    { to: "/student/dashboard", label: "Overview", icon: LayoutDashboard },
-    { to: "/student/practice", label: "Practice", icon: Code2 },
-    { to: "/student/assessments", label: "Assessments", icon: BookOpen },
-    { to: "/student/skills", label: "Skill Gap Analysis", icon: Target },
-    { to: "/student/readiness", label: "Placement Readiness", icon: GraduationCap },
-    { to: "/student/interview", label: "AI Mock Interview", icon: Mic, badge: "AI" },
-    { to: "/student/tasks", label: "Daily Behavioral", icon: CheckSquare, badge: "Streak" },
-    { to: "/student/jobs", label: "Job Opportunities", icon: Briefcase, badge: "Drives" },
-    { to: "/student/profile", label: "My Profile", icon: User }
+  const universityAdminLinks = [
+    { to: "/institution/dashboard", label: "College Overview", icon: LayoutDashboard },
+    { to: "/institution/departments", label: "Departments & Branches", icon: Building2, badge: "Units" },
+    { to: "/institution/assessments", label: "Assessments", icon: Layers },
+    { to: "/institution/questions", label: "Question Bank", icon: BookOpen },
+    { to: "/institution/profile", label: "College Profile", icon: Settings }
   ];
 
   const placementLinks = [
-    { to: "/placement/dashboard", label: "Batch Overview", icon: LayoutDashboard },
+    { to: "/placement/dashboard", label: "T&P Overview", icon: LayoutDashboard },
+    { to: "/placement/students", label: "Universal Student Directory", icon: Users },
+    { to: "/placement/jobs", label: "Job Drives & Openings", icon: Briefcase, badge: "Drives" },
     { to: "/placement/assessments", label: "Assessments", icon: Layers },
     { to: "/placement/questions", label: "Question Bank", icon: BookOpen },
-    { to: "/placement/students", label: "Student Directory", icon: Users },
-    { to: "/placement/jobs", label: "Job Descriptions", icon: Briefcase, badge: "Match" },
     { to: "/placement/analytics", label: "Placement Analytics", icon: BarChart3 },
-    { to: "/placement/reports", label: "Institutional Reports", icon: FileSpreadsheet },
-    { to: "/placement/profile", label: "Department Profile", icon: Building2 }
+    { to: "/placement/reports", label: "NBA / NIRF Reports", icon: FileSpreadsheet, badge: "Export" },
+    { to: "/placement/profile", label: "T&P Cell Profile", icon: Building2 }
   ];
 
-  const adminLinks = [
-    { to: "/admin/dashboard", label: "System Overview", icon: LayoutDashboard },
+  const departmentAdminLinks = [
+    { to: "/admin/dashboard", label: "Dept Overview", icon: LayoutDashboard },
+    { to: "/admin/departments", label: "Branch Management", icon: Building2, badge: "Branches" },
+    { to: "/admin/students", label: "Department Students", icon: Users },
     { to: "/admin/assessments", label: "Assessments", icon: Layers },
     { to: "/admin/questions", label: "Question Bank", icon: BookOpen },
-    { to: "/admin/users", label: "User Management", icon: Users },
-    { to: "/admin/students", label: "Student Records", icon: GraduationCap },
-    { to: "/admin/analytics", label: "Platform Analytics", icon: BarChart3 },
-    { to: "/admin/profile", label: "Department Profile", icon: Building2 },
-    { to: "/admin/settings", label: "System Settings", icon: Settings }
+    { to: "/admin/profile", label: "Department Profile", icon: Settings }
   ];
 
-  const universityAdminLinks = [
-    { to: "/institution/dashboard", label: "Overview", icon: LayoutDashboard },
-    { to: "/institution/assessments", label: "Assessments", icon: Layers },
-    { to: "/institution/questions", label: "Question Bank", icon: BookOpen },
-    { to: "/institution/departments", label: "Departments", icon: Building2, badge: "Units" },
-    { to: "/institution/profile", label: "College Profile", icon: Building2 }
-  ];
-
-  const superAdminLinks = [
-    { to: "/super-admin/dashboard", label: "Overview", icon: LayoutDashboard },
-    { to: "/super-admin/approvals", label: "College Approvals", icon: Building2, badge: "Review" },
-    { to: "/super-admin/institutions", label: "Institutions Directory", icon: Users },
-    { to: "/super-admin/questions", label: "Global Question Bank", icon: BookOpen, badge: "Global" }
+  const branchAdminLinks = [
+    { to: "/admin/students", label: "Branch Students (CRUD)", icon: Users },
+    { to: "/admin/assessments", label: "Branch Assessments", icon: Layers },
+    { to: "/admin/questions", label: "Subjects & Questions", icon: BookOpen },
+    { to: "/admin/profile", label: "Branch Profile", icon: Settings }
   ];
 
   const links =
-    role === "super_admin"
-      ? superAdminLinks
-      : role === "university_admin"
+    role === "university_admin"
       ? universityAdminLinks
       : role === "placement"
       ? placementLinks
-      : role === "admin"
-      ? adminLinks
-      : studentLinks;
+      : role === "branch_admin"
+      ? branchAdminLinks
+      : departmentAdminLinks;
 
   const handleLogout = () => {
     logout();
@@ -158,10 +142,10 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
               {role === "university_admin"
                 ? "University Admin Portal"
                 : role === "placement"
-                ? "Placement Portal"
-                : role === "admin"
-                ? "System Portal"
-                : "Student Career Hub"}
+                ? "Training & Placement Cell"
+                : role === "branch_admin"
+                ? "Branch Portal"
+                : "Department Portal"}
             </div>
           )}
 
@@ -228,24 +212,24 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
           >
             <Avatar
               src={user?.profileImageUrl || user?.logoUrl || user?.avatar}
-              name={user?.name || (user?.role === "placement" ? user?.collegeName : user?.role === "university_admin" ? user?.institutionName : "Student")}
-              isCollege={user?.role === "placement" || user?.role === "admin" || user?.role === "university_admin"}
+              name={user?.name || (user?.role === "placement" ? user?.collegeName : user?.role === "university_admin" ? user?.institutionName : "Department")}
+              isCollege={true}
               size="sm"
               className="border border-slate-200 shrink-0"
             />
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-slate-900 truncate">
-                  {user?.name || (user?.role === "university_admin" ? user?.institutionName : "Student")}
+                  {user?.name || (user?.role === "university_admin" ? user?.institutionName : "Department Admin")}
                 </p>
                 <p className="text-[11px] text-slate-400 capitalize truncate">
-                  {user?.role === "university_admin"
+                  {role === "university_admin"
                     ? "University Admin"
-                    : user?.role === "placement"
-                    ? "Placement Officer"
-                    : user?.role === "admin"
-                    ? "System Admin"
-                    : "Student"}
+                    : role === "placement"
+                    ? "Training & Placement Officer"
+                    : role === "branch_admin"
+                    ? "Branch Coordinator"
+                    : "Department Admin"}
                 </p>
               </div>
             )}
