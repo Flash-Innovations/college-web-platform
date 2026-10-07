@@ -5,7 +5,7 @@
  * Strictly adheres to server-authoritative identity: NO x-student-id or x-college-id headers.
  */
 
-const PRACTICE_API_BASE_URL = import.meta.env.VITE_PRACTICE_API_URL || 'http://localhost:5050';
+const PRACTICE_API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_PRACTICE_API_URL) || 'https://sips-practice-service.onrender.com';
 
 const getAuthToken = () => {
   try {
