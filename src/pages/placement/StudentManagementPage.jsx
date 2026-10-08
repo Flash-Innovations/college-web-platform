@@ -81,6 +81,13 @@ export function StudentManagementPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deletingStudent, setDeletingStudent] = useState(false);
 
+  // Role definitions and auto-filled program & branch locks
+  const isBranchCoord = role === "branch_admin" || Boolean(user?.branchName);
+  const isDeptAdmin = role === "department_admin" || (role === "placement" && Boolean(user?.departmentName));
+
+  const lockedProgram = user?.departmentName || (user?.name && !isBranchCoord ? user.name.replace(/\s*Dept\s*$/i, "") : "") || "Bachelors of Technology";
+  const lockedBranch = user?.branchName || (isBranchCoord ? (user?.name || "Computer Science & Engineering") : "Computer Science & Engineering");
+
   // Add Student modal
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [savingStudent, setSavingStudent] = useState(false);
@@ -90,8 +97,8 @@ export function StudentManagementPage() {
     name: "",
     email: "",
     rollNo: "",
-    course: "",
-    branch: "Computer Science & Engineering",
+    course: lockedProgram,
+    branch: lockedBranch,
     section: "",
     batch: "",
     cgpa: "",
@@ -130,14 +137,30 @@ export function StudentManagementPage() {
         const firstSec = firstBranch?.sections?.[0] || "";
         setNewStudent((prev) => ({
           ...prev,
-          course: prev.course || firstCourse?.courseName || "",
-          branch: prev.branch || firstBranch?.branchName || "Computer Science & Engineering",
+          course: isBranchCoord || isDeptAdmin ? lockedProgram : (prev.course || firstCourse?.courseName || lockedProgram),
+          branch: isBranchCoord ? lockedBranch : (prev.branch || firstBranch?.branchName || lockedBranch),
           section: prev.section || firstSec
         }));
       }
     } catch (e) {
       console.warn("Could not load academic structure:", e);
     }
+  };
+
+  const handleOpenAddModal = () => {
+    setNewStudent({
+      name: "",
+      email: "",
+      rollNo: "",
+      course: lockedProgram,
+      branch: lockedBranch,
+      section: "",
+      batch: "",
+      cgpa: "",
+      password: ""
+    });
+    setAddStudentErrors({});
+    setAddModalOpen(true);
   };
 
   useEffect(() => {
@@ -323,6 +346,9 @@ export function StudentManagementPage() {
     e.preventDefault();
     const newErrors = {};
 
+    const effectiveCourse = (isBranchCoord || isDeptAdmin) ? lockedProgram : (newStudent.course || lockedProgram);
+    const effectiveBranch = isBranchCoord ? lockedBranch : (newStudent.branch || lockedBranch);
+
     if (!newStudent.name.trim()) {
       newErrors.name = "Full name is required.";
     }
@@ -340,11 +366,11 @@ export function StudentManagementPage() {
       newErrors.rollNo = "Roll No / USN is required.";
     }
 
-    if (!newStudent.course?.trim()) {
+    if (!effectiveCourse?.trim()) {
       newErrors.course = "Course / Program is required.";
     }
 
-    if (!newStudent.branch?.trim()) {
+    if (!effectiveBranch?.trim()) {
       newErrors.branch = "Branch is required.";
     }
 
@@ -366,16 +392,21 @@ export function StudentManagementPage() {
     setAddStudentErrors({});
     setSavingStudent(true);
     try {
-      const res = await adminService.createStudent(newStudent);
+      const studentPayload = {
+        ...newStudent,
+        course: effectiveCourse,
+        branch: effectiveBranch
+      };
+      const res = await adminService.createStudent(studentPayload);
       showSuccess(`Student created successfully. Initial password: ${res.student.initialPassword}`);
       setAddModalOpen(false);
       setNewStudent({
         name: "",
         email: "",
         rollNo: "",
-        course: academicStructure[0]?.courseName || "",
-        branch: academicStructure[0]?.branches?.[0]?.branchName || "Computer Science & Engineering",
-        section: academicStructure[0]?.branches?.[0]?.sections?.[0] || "",
+        course: lockedProgram,
+        branch: lockedBranch,
+        section: "",
         batch: "",
         cgpa: "",
         password: ""
@@ -982,7 +1013,7 @@ export function StudentManagementPage() {
                 variant="primary"
                 size="sm"
                 icon={UserPlus}
-                onClick={() => setAddModalOpen(true)}
+                onClick={handleOpenAddModal}
               >
                 Add Student
               </Button>
@@ -1585,32 +1616,60 @@ export function StudentManagementPage() {
             </div>
           </div>
 
-          {/* Academic Structure: Course, Branch, Section Cascading Fields */}
-          {academicStructure.length > 0 ? (
-            <div className="space-y-3 p-3 bg-slate-50/80 border border-slate-200/80 rounded-xl">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+          {/* Department / Program and Branch Configuration */}
+          <div className="space-y-3 p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider">
                     Degree Program / Course *
                   </label>
-                  <select
-                    disabled={savingStudent}
-                    value={newStudent.course}
-                    onChange={(e) => handleCourseChange(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  >
-                    {academicStructure.map((c) => (
-                      <option key={c.courseName} value={c.courseName}>
-                        {c.courseName}
-                      </option>
-                    ))}
-                  </select>
+                  {(isBranchCoord || isDeptAdmin) && (
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-200/60">
+                      🔒 Locked
+                    </span>
+                  )}
                 </div>
+                <input
+                  type="text"
+                  readOnly={isBranchCoord || isDeptAdmin}
+                  disabled={isBranchCoord || isDeptAdmin || savingStudent}
+                  value={newStudent.course || lockedProgram}
+                  onChange={(e) => {
+                    if (!isBranchCoord && !isDeptAdmin) {
+                      setNewStudent({ ...newStudent, course: e.target.value });
+                    }
+                  }}
+                  placeholder="e.g. Bachelors of Technology"
+                  className={`w-full px-3.5 py-2 rounded-xl border text-xs font-semibold ${
+                    isBranchCoord || isDeptAdmin
+                      ? "bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed select-none shadow-none"
+                      : "bg-white border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  }`}
+                />
+              </div>
 
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Branch / Department *
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider">
+                    Branch *
                   </label>
+                  {isBranchCoord && (
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-200/60">
+                      🔒 Locked
+                    </span>
+                  )}
+                </div>
+                {isBranchCoord ? (
+                  <input
+                    type="text"
+                    readOnly={true}
+                    disabled={true}
+                    value={newStudent.branch || lockedBranch}
+                    placeholder="e.g. Computer Science & Engineering"
+                    className="w-full px-3.5 py-2 rounded-xl border text-xs font-semibold bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed select-none shadow-none"
+                  />
+                ) : availableBranches.length > 0 ? (
                   <select
                     disabled={savingStudent}
                     value={newStudent.branch}
@@ -1623,104 +1682,37 @@ export function StudentManagementPage() {
                       </option>
                     ))}
                   </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Section
-                  </label>
-                  <select
-                    disabled={savingStudent}
-                    value={newStudent.section}
-                    onChange={(e) => handleSectionChange(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  >
-                    {availableSections.map((s) => (
-                      <option key={s} value={s}>
-                        Section {s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Batch Year
-                  </label>
+                ) : (
                   <input
                     type="text"
-                    placeholder="e.g. 2026"
                     disabled={savingStudent}
-                    value={newStudent.batch}
-                    onChange={(e) => setNewStudent({ ...newStudent, batch: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    value={newStudent.branch}
+                    onChange={(e) => setNewStudent({ ...newStudent, branch: e.target.value })}
+                    placeholder="e.g. Computer Science & Engineering"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                   />
-                </div>
+                )}
               </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
+
+            <div className="grid grid-cols-2 gap-3 pt-1">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Department / Course
+                  Section (Optional)
                 </label>
                 <input
                   type="text"
+                  placeholder="e.g. A, B"
                   disabled={savingStudent}
-                  placeholder="e.g. B.Tech, M.Tech, BCA"
-                  value={newStudent.course}
-                  onChange={(e) => {
-                    setNewStudent({ ...newStudent, course: e.target.value });
-                    if (addStudentErrors.course || addStudentErrors.general) {
-                      setAddStudentErrors((prev) => ({ ...prev, course: "", general: "" }));
-                    }
-                  }}
-                  className={`w-full px-3 py-2 rounded-xl border text-xs font-medium focus:outline-none focus:ring-2 ${
-                    addStudentErrors.course
-                      ? "border-rose-300 focus:ring-rose-500/20 focus:border-rose-500"
-                      : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-600"
-                  }`}
+                  value={newStudent.section}
+                  onChange={(e) => setNewStudent({ ...newStudent, section: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 />
-                {addStudentErrors.course && (
-                  <p className="text-[11px] font-medium text-rose-600 mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3 shrink-0" />
-                    {addStudentErrors.course}
-                  </p>
-                )}
               </div>
+
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Branch
-                </label>
-                <input
-                  type="text"
-                  disabled={savingStudent}
-                  placeholder="e.g. Computer Science"
-                  value={newStudent.branch}
-                  onChange={(e) => {
-                    setNewStudent({ ...newStudent, branch: e.target.value });
-                    if (addStudentErrors.branch || addStudentErrors.general) {
-                      setAddStudentErrors((prev) => ({ ...prev, branch: "", general: "" }));
-                    }
-                  }}
-                  className={`w-full px-3 py-2 rounded-xl border text-xs font-medium focus:outline-none focus:ring-2 ${
-                    addStudentErrors.branch
-                      ? "border-rose-300 focus:ring-rose-500/20 focus:border-rose-500"
-                      : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-600"
-                  }`}
-                />
-                {addStudentErrors.branch && (
-                  <p className="text-[11px] font-medium text-rose-600 mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3 shrink-0" />
-                    {addStudentErrors.branch}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Batch Year
+                  Batch Year *
                 </label>
                 <input
                   type="text"
@@ -1728,11 +1720,18 @@ export function StudentManagementPage() {
                   disabled={savingStudent}
                   value={newStudent.batch}
                   onChange={(e) => setNewStudent({ ...newStudent, batch: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 />
               </div>
             </div>
-          )}
+
+            {isBranchCoord && (
+              <p className="text-[11px] text-slate-500 flex items-center gap-1.5 pt-1 border-t border-slate-200/60">
+                <span className="font-semibold text-slate-700">🔒 Fixed Unit Assignment:</span>
+                <span>Students are automatically mapped to <strong>{newStudent.branch || lockedBranch}</strong> under <strong>{newStudent.course || lockedProgram}</strong> and cannot be altered.</span>
+              </p>
+            )}
+          </div>
 
           <div>
             <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
