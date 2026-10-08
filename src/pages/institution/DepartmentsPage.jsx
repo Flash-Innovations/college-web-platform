@@ -38,12 +38,13 @@ export function DepartmentsPage() {
   // Create Modal State
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [createBranchInput, setCreateBranchInput] = useState("");
   const [createForm, setCreateForm] = useState({
     name: "",
     code: "",
     username: "",
     password: "",
-    programs: [],
+    branches: [],
     contactEmail: "",
     contactPhone: ""
   });
@@ -54,10 +55,11 @@ export function DepartmentsPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editDeptId, setEditDeptId] = useState(null);
+  const [editBranchInput, setEditBranchInput] = useState("");
   const [editForm, setEditForm] = useState({
     name: "",
     code: "",
-    programs: [],
+    branches: [],
     contactEmail: "",
     contactPhone: "",
     newPassword: ""
@@ -75,8 +77,8 @@ export function DepartmentsPage() {
       const res = await institutionService.getDepartments();
       setDepartments(res.departments || []);
     } catch (err) {
-      console.error("Failed to load departments:", err);
-      showError("Could not load departments list");
+      console.error("Failed to load programs:", err);
+      showError("Could not load programs list");
     } finally {
       setLoading(false);
     }
@@ -91,19 +93,53 @@ export function DepartmentsPage() {
     }
   }, []);
 
+  const handleAddCreateBranch = () => {
+    const val = createBranchInput.trim();
+    if (val) {
+      if (!createForm.branches.includes(val)) {
+        setCreateForm({ ...createForm, branches: [...createForm.branches, val] });
+      }
+      setCreateBranchInput("");
+    }
+  };
+
+  const removeCreateBranch = (indexToRemove) => {
+    setCreateForm({
+      ...createForm,
+      branches: createForm.branches.filter((_, i) => i !== indexToRemove)
+    });
+  };
+
+  const handleAddEditBranch = () => {
+    const val = editBranchInput.trim();
+    if (val) {
+      if (!editForm.branches.includes(val)) {
+        setEditForm({ ...editForm, branches: [...editForm.branches, val] });
+      }
+      setEditBranchInput("");
+    }
+  };
+
+  const removeEditBranch = (indexToRemove) => {
+    setEditForm({
+      ...editForm,
+      branches: editForm.branches.filter((_, i) => i !== indexToRemove)
+    });
+  };
+
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     const errors = {};
 
-    if (!createForm.name.trim()) errors.name = "Department name is required";
+    if (!createForm.name.trim()) errors.name = "Program name is required";
     if (!createForm.username.trim()) {
-      errors.username = "Department username is required";
+      errors.username = "Sign-in username is required";
     } else if (!/^[a-z0-9_.-]+$/.test(createForm.username.trim().toLowerCase())) {
       errors.username = "Username must be lowercase letters, numbers, underscore, hyphen or dot";
     }
 
     if (!createForm.password) {
-      errors.password = "Password is required for department login";
+      errors.password = "Password is required for program sign-in";
     } else if (createForm.password.length < 6) {
       errors.password = "Password must be at least 6 characters";
     }
@@ -118,39 +154,42 @@ export function DepartmentsPage() {
     setCreating(true);
 
     try {
-      const programsArr = createForm.programs
-        .filter(p => p.name && p.name.trim())
-        .map(p => ({
-          name: p.name.trim(),
-          branches: Array.isArray(p.branches) ? p.branches.map(b => b.trim()).filter(Boolean) : typeof p.branches === 'string' ? p.branches.split(',').map(b => b.trim()).filter(Boolean) : []
-        }));
+      const branchesArr = createForm.branches.map((b) => b.trim()).filter(Boolean);
+      const programsArr = [
+        {
+          name: createForm.name.trim(),
+          branches: branchesArr
+        }
+      ];
 
       const payload = {
         name: createForm.name.trim(),
         code: createForm.code.trim().toUpperCase(),
         username: createForm.username.trim().toLowerCase(),
         password: createForm.password,
+        branches: branchesArr,
         programs: programsArr,
         contactEmail: createForm.contactEmail.trim().toLowerCase(),
         contactPhone: createForm.contactPhone.trim()
       };
 
       const res = await institutionService.createDepartment(payload);
-      showSuccess(`Department "${payload.name}" created successfully with username: ${payload.username}`);
+      showSuccess(`Program "${payload.name}" created successfully with username: ${payload.username}`);
       setCreateModalOpen(false);
+      setCreateBranchInput("");
       setCreateForm({
         name: "",
         code: "",
         username: "",
         password: "",
-        programs: [],
+        branches: [],
         contactEmail: "",
         contactPhone: ""
       });
       loadDepartments();
     } catch (err) {
-      console.error("Failed to create department:", err);
-      showError(err.message || "Failed to create department");
+      console.error("Failed to create program:", err);
+      showError(err.message || "Failed to create program");
     } finally {
       setCreating(false);
     }
@@ -158,41 +197,57 @@ export function DepartmentsPage() {
 
   const openEditModal = (dept) => {
     setEditDeptId(dept._id);
+    let initialBranches = [];
+    if (Array.isArray(dept.programs) && dept.programs.length > 0) {
+      dept.programs.forEach((p) => {
+        if (typeof p === "object" && Array.isArray(p.branches)) {
+          initialBranches.push(...p.branches);
+        } else if (typeof p === "string") {
+          initialBranches.push(p);
+        }
+      });
+    }
+    if (initialBranches.length === 0 && Array.isArray(dept.branches)) {
+      dept.branches.forEach((b) => {
+        if (typeof b === "object" && b.name) initialBranches.push(b.name);
+        else if (typeof b === "string") initialBranches.push(b);
+      });
+    }
+    initialBranches = Array.from(new Set(initialBranches.filter(Boolean)));
+
     setEditForm({
       name: dept.name || "",
       code: dept.code || "",
-      programs: Array.isArray(dept.programs)
-        ? dept.programs.map(p => ({
-            name: typeof p === 'object' ? p.name : p,
-            branches: typeof p === 'object' && Array.isArray(p.branches) ? p.branches : []
-          }))
-        : [],
+      branches: initialBranches,
       contactEmail: dept.contactEmail || "",
       contactPhone: dept.contactPhone || "",
       newPassword: ""
     });
+    setEditBranchInput("");
     setEditModalOpen(true);
   };
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!editForm.name.trim()) {
-      showError("Department name is required");
+      showError("Program name is required");
       return;
     }
 
     setEditing(true);
     try {
-      const programsArr = editForm.programs
-        .filter(p => p.name && p.name.trim())
-        .map(p => ({
-          name: p.name.trim(),
-          branches: Array.isArray(p.branches) ? p.branches.map(b => b.trim()).filter(Boolean) : typeof p.branches === 'string' ? p.branches.split(',').map(b => b.trim()).filter(Boolean) : []
-        }));
+      const branchesArr = editForm.branches.map((b) => b.trim()).filter(Boolean);
+      const programsArr = [
+        {
+          name: editForm.name.trim(),
+          branches: branchesArr
+        }
+      ];
 
       const payload = {
         name: editForm.name.trim(),
         code: editForm.code.trim().toUpperCase(),
+        branches: branchesArr,
         programs: programsArr,
         contactEmail: editForm.contactEmail.trim().toLowerCase(),
         contactPhone: editForm.contactPhone.trim()
@@ -203,12 +258,12 @@ export function DepartmentsPage() {
       }
 
       await institutionService.updateDepartment(editDeptId, payload);
-      showSuccess("Department updated successfully");
+      showSuccess("Program updated successfully");
       setEditModalOpen(false);
       loadDepartments();
     } catch (err) {
-      console.error("Failed to update department:", err);
-      showError(err.message || "Failed to update department");
+      console.error("Failed to update program:", err);
+      showError(err.message || "Failed to update program");
     } finally {
       setEditing(false);
     }
@@ -218,12 +273,12 @@ export function DepartmentsPage() {
     try {
       await institutionService.toggleDepartmentStatus(dept._id);
       const newStatus = dept.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
-      showSuccess(`Department "${dept.name}" status changed to ${newStatus}`);
+      showSuccess(`Program "${dept.name}" status changed to ${newStatus}`);
       setDepartments((prev) =>
         prev.map((d) => (d._id === dept._id ? { ...d, status: newStatus } : d))
       );
     } catch (err) {
-      console.error("Failed to toggle department status:", err);
+      console.error("Failed to toggle program status:", err);
       showError(err.message || "Failed to toggle status");
     }
   };
@@ -233,13 +288,13 @@ export function DepartmentsPage() {
     setDeleting(true);
     try {
       await institutionService.deleteDepartment(deptToDelete._id);
-      showSuccess(`Department "${deptToDelete.name}" deleted successfully`);
+      showSuccess(`Program "${deptToDelete.name}" deleted successfully`);
       setDeleteModalOpen(false);
       setDeptToDelete(null);
       loadDepartments();
     } catch (err) {
-      console.error("Failed to delete department:", err);
-      showError(err.message || "Failed to delete department");
+      console.error("Failed to delete program:", err);
+      showError(err.message || "Failed to delete program");
     } finally {
       setDeleting(false);
     }
@@ -262,10 +317,10 @@ export function DepartmentsPage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2.5">
             <Layers className="w-6 h-6 text-indigo-600" />
-            Academic Departments & Placement Units
+            Academic Programs & Placement Units
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Provision autonomous department credentials (e.g. BBA, BCA, MBA). Department admins log in through University / Department Sign In.
+            Provision autonomous program credentials (e.g. B.Tech, BCA, BBA, MBA). Program placement admins log in through University / Program Sign In.
           </p>
         </div>
 
@@ -285,7 +340,7 @@ export function DepartmentsPage() {
             icon={Plus}
             onClick={() => setCreateModalOpen(true)}
           >
-            Create Department
+            Create Program
           </Button>
         </div>
       </div>
@@ -294,15 +349,15 @@ export function DepartmentsPage() {
       <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-100 flex items-start gap-2.5 text-xs text-indigo-950">
         <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
         <span className="leading-relaxed">
-          <strong>Architecture Notice:</strong> Each department gets dedicated login credentials and full administrative isolation. Department admins log into the existing SIPS Placement Dashboard to manage students, campus drives, applications, matching, and CSV exports.
+          <strong>Architecture Notice:</strong> Each program gets dedicated login credentials and full administrative isolation. Program placement admins log in to manage student batches, campus recruitment drives, applications, and student eligibility.
         </span>
       </div>
 
       {/* Main Table Card */}
       <Card>
         <CardHeader
-          title={`Department Roster (${filteredDepts.length})`}
-          subtitle="Authorized institutional units with autonomous credentials"
+          title={`Program Roster (${filteredDepts.length})`}
+          subtitle="Authorized institutional programs and their associated branches"
           action={
             <div className="relative w-64">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -310,7 +365,7 @@ export function DepartmentsPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name, code, username..."
+                placeholder="Search by program name, code, username..."
                 className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
               />
             </div>
@@ -322,16 +377,16 @@ export function DepartmentsPage() {
             <div className="w-12 h-12 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
               <Layers className="w-6 h-6" />
             </div>
-            <p className="text-sm font-semibold text-slate-700">No departments found</p>
+            <p className="text-sm font-semibold text-slate-700">No programs found</p>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Create your first department (e.g. BCA, BBA, MBA) to enable departmental placement cells.
+              Create your first academic program (e.g. B.Tech, BCA, BBA, MBA) to configure branches and enable program placement units.
             </p>
             <Button
               size="sm"
               icon={Plus}
               onClick={() => setCreateModalOpen(true)}
             >
-              Add Department Now
+              Add Program Now
             </Button>
           </div>
         ) : (
@@ -339,135 +394,155 @@ export function DepartmentsPage() {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 uppercase tracking-wider font-bold">
                 <tr>
-                  <th className="py-3 px-4">Department Name</th>
+                  <th className="py-3 px-4">Program Name</th>
                   <th className="py-3 px-4">Code</th>
                   <th className="py-3 px-4">Sign-in Username</th>
-                  <th className="py-3 px-4">Academic Programs</th>
+                  <th className="py-3 px-4">Branches</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredDepts.map((dept) => (
-                  <tr key={dept._id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-3.5 px-4 font-bold text-slate-900">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 font-black flex items-center justify-center text-xs">
-                          {(dept.code || dept.name || "D").substring(0, 3).toUpperCase()}
+                {filteredDepts.map((dept) => {
+                  const branchList = [];
+                  if (Array.isArray(dept.programs)) {
+                    dept.programs.forEach((p) => {
+                      if (typeof p === "object" && Array.isArray(p.branches)) {
+                        branchList.push(...p.branches);
+                      } else if (typeof p === "string") {
+                        branchList.push(p);
+                      }
+                    });
+                  }
+                  if (branchList.length === 0 && Array.isArray(dept.branches)) {
+                    dept.branches.forEach((b) => {
+                      if (typeof b === "object" && b.name) branchList.push(b.name);
+                      else if (typeof b === "string") branchList.push(b);
+                    });
+                  }
+                  const uniqueBranches = Array.from(new Set(branchList.filter(Boolean)));
+
+                  return (
+                    <tr key={dept._id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-3.5 px-4 font-bold text-slate-900">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 font-black flex items-center justify-center text-xs">
+                            {(dept.code || dept.name || "P").substring(0, 3).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-900">{dept.name}</p>
+                            {dept.contactEmail && (
+                              <p className="text-[11px] text-slate-400 flex items-center gap-1 font-normal">
+                                <Mail className="w-3 h-3 text-slate-400" />
+                                {dept.contactEmail}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-slate-900">{dept.name}</p>
-                          {dept.contactEmail && (
-                            <p className="text-[11px] text-slate-400 flex items-center gap-1 font-normal">
-                              <Mail className="w-3 h-3 text-slate-400" />
-                              {dept.contactEmail}
-                            </p>
-                          )}
+                      </td>
+
+                      <td className="py-3.5 px-4 font-mono font-semibold text-slate-700">
+                        {dept.code || "—"}
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 font-mono font-bold text-indigo-700 text-xs border border-slate-200/70">
+                          <KeyRound className="w-3 h-3 text-indigo-500" />
+                          {dept.username}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-slate-600 max-w-xs">
+                        {uniqueBranches.length > 0 ? (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {uniqueBranches.map((b, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-0.5 rounded-md bg-indigo-50/80 text-indigo-700 border border-indigo-100 text-[11px] font-medium"
+                              >
+                                {b}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 italic text-[11px]">General</span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <Badge
+                          variant={dept.status === "ACTIVE" ? "success" : "neutral"}
+                          className="text-[10px]"
+                        >
+                          {dept.status || "ACTIVE"}
+                        </Badge>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(dept)}
+                            title={dept.status === "ACTIVE" ? "Deactivate Program" : "Activate Program"}
+                            className={`p-1.5 rounded-lg border text-xs cursor-pointer transition-colors ${
+                              dept.status === "ACTIVE"
+                                ? "text-slate-500 border-slate-200 hover:text-amber-600 hover:bg-amber-50"
+                                : "text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                            }`}
+                          >
+                            <Power className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(dept)}
+                            title="Edit Program"
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 text-xs cursor-pointer transition-colors"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeptToDelete(dept);
+                              setDeleteModalOpen(true);
+                            }}
+                            title="Delete Program"
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 text-xs cursor-pointer transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
-                      </div>
-                    </td>
-
-                    <td className="py-3.5 px-4 font-mono font-semibold text-slate-700">
-                      {dept.code || "—"}
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 font-mono font-bold text-indigo-700 text-xs border border-slate-200/70">
-                        <KeyRound className="w-3 h-3 text-indigo-500" />
-                        {dept.username}
-                      </span>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-slate-600 max-w-xs truncate">
-                      {dept.programs && dept.programs.length > 0 ? (
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {dept.programs.map((p, idx) => (
-                            <span
-                              key={idx}
-                              className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold"
-                            >
-                              {typeof p === 'object' ? `${p.name} ${p.branches && p.branches.length ? `(${p.branches.join(', ')})` : ''}` : p}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      <Badge
-                        variant={dept.status === "ACTIVE" ? "success" : "neutral"}
-                        className="text-[10px]"
-                      >
-                        {dept.status || "ACTIVE"}
-                      </Badge>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleStatus(dept)}
-                          title={dept.status === "ACTIVE" ? "Deactivate Department" : "Activate Department"}
-                          className={`p-1.5 rounded-lg border text-xs cursor-pointer transition-colors ${
-                            dept.status === "ACTIVE"
-                              ? "text-slate-500 border-slate-200 hover:text-amber-600 hover:bg-amber-50"
-                              : "text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                          }`}
-                        >
-                          <Power className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(dept)}
-                          title="Edit Department"
-                          className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 text-xs cursor-pointer transition-colors"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDeptToDelete(dept);
-                            setDeleteModalOpen(true);
-                          }}
-                          title="Delete Department"
-                          className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 text-xs cursor-pointer transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </Card>
 
-      {/* Create Department Modal */}
+      {/* Create Program Modal */}
       <Modal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
         maxWidth="max-w-lg"
-        title="Create Academic Department"
-        subtitle="Generates login credentials for the department placement cell"
+        title="Create Academic Program"
+        subtitle="Generates login credentials for the program placement cell"
       >
         <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
           <div>
             <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Department Name * (e.g. BCA, BBA, MBA, Computer Science)
+              Program Name * (e.g. B.Tech, BCA, BBA, MBA, MCA)
             </label>
             <input
               type="text"
               required
               value={createForm.name}
               onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-              placeholder="e.g. Bachelor of Computer Applications"
+              placeholder="e.g. Bachelor of Technology (B.Tech)"
               className={`w-full px-3 py-2 rounded-xl border text-xs font-medium focus:outline-none focus:ring-2 ${
                 createErrors.name
                   ? "border-rose-300 focus:ring-rose-500/20 focus:border-rose-500"
@@ -480,14 +555,14 @@ export function DepartmentsPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Department Code (e.g. BCA)
+                Program Code (e.g. BTECH, BCA)
               </label>
               <input
                 type="text"
                 value={createForm.code}
                 onChange={(e) => setCreateForm({ ...createForm, code: e.target.value })}
-                placeholder="e.g. BCA"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                placeholder="e.g. BTECH"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 uppercase"
               />
             </div>
 
@@ -500,7 +575,7 @@ export function DepartmentsPage() {
                 required
                 value={createForm.username}
                 onChange={(e) => setCreateForm({ ...createForm, username: e.target.value.toLowerCase() })}
-                placeholder="e.g. abc_bca"
+                placeholder="e.g. iast_btech"
                 className={`w-full px-3 py-2 rounded-xl border font-mono text-xs font-medium focus:outline-none focus:ring-2 ${
                   createErrors.username
                     ? "border-rose-300 focus:ring-rose-500/20 focus:border-rose-500"
@@ -513,7 +588,7 @@ export function DepartmentsPage() {
 
           <div>
             <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Initial Password * (For department sign-in)
+              Initial Password * (For program sign-in)
             </label>
             <div className="relative">
               <input
@@ -542,91 +617,61 @@ export function DepartmentsPage() {
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-2">
-              Programs & Branches
+            <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              Branches / Specializations
             </label>
-            <div className="space-y-3">
-              {createForm.programs.map((p, idx) => (
-                <div key={idx} className="flex gap-2 items-start">
-                  <div className="flex-1 space-y-2">
-                    <input
-                      type="text"
-                      placeholder="Program Name (e.g. B.Tech)"
-                      value={p.name}
-                      onChange={(e) => {
-                        const newP = [...createForm.programs];
-                        newP[idx].name = e.target.value;
-                        setCreateForm({ ...createForm, programs: newP });
-                      }}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
-                    />
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        placeholder="Add branch and press Enter..."
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            const val = e.target.value.trim();
-                            if (val) {
-                              const newP = [...createForm.programs];
-                              if (!Array.isArray(newP[idx].branches)) newP[idx].branches = [];
-                              if (!newP[idx].branches.includes(val)) {
-                                newP[idx].branches.push(val);
-                              }
-                              setCreateForm({ ...createForm, programs: newP });
-                              e.target.value = "";
-                            }
-                          }
-                        }}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
-                      />
-                      {Array.isArray(p.branches) && p.branches.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {p.branches.map((b, bIdx) => (
-                            <span
-                              key={bIdx}
-                              className="px-2 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200 flex items-center gap-1.5"
-                            >
-                              {b}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newP = [...createForm.programs];
-                                  newP[idx].branches = newP[idx].branches.filter((_, i) => i !== bIdx);
-                                  setCreateForm({ ...createForm, programs: newP });
-                                }}
-                                className="text-slate-400 hover:text-rose-500 cursor-pointer"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      const newP = createForm.programs.filter((_, i) => i !== idx);
-                      setCreateForm({ ...createForm, programs: newP });
-                    }}
-                    className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+            <p className="text-[11px] text-slate-400 mb-2">
+              Add branches belonging to this program (e.g. Computer Science, Mechanical, ECE)
+            </p>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={createBranchInput}
+                  onChange={(e) => setCreateBranchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddCreateBranch();
+                    }
+                  }}
+                  placeholder="Add branch (e.g. Computer Science) and press Enter..."
+                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddCreateBranch}
+                  icon={Plus}
+                >
+                  Add
+                </Button>
+              </div>
+
+              {createForm.branches && createForm.branches.length > 0 ? (
+                <div className="flex flex-wrap gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 min-h-[42px]">
+                  {createForm.branches.map((b, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-slate-800 border border-slate-200 shadow-sm flex items-center gap-1.5"
+                    >
+                      {b}
+                      <button
+                        type="button"
+                        onClick={() => removeCreateBranch(idx)}
+                        className="text-slate-400 hover:text-rose-500 cursor-pointer transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  ))}
                 </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setCreateForm({ ...createForm, programs: [...createForm.programs, { name: "", branches: [] }] })}
-                className="w-full py-2 border-dashed rounded-xl text-xs flex items-center justify-center gap-2"
-              >
-                <Plus className="w-3 h-3" /> Add Program
-              </Button>
+              ) : (
+                <p className="text-[11px] text-slate-400 italic px-1">
+                  No branches added yet. Press Enter or click Add to add branches.
+                </p>
+              )}
             </div>
           </div>
 
@@ -639,7 +684,7 @@ export function DepartmentsPage() {
                 type="email"
                 value={createForm.contactEmail}
                 onChange={(e) => setCreateForm({ ...createForm, contactEmail: e.target.value })}
-                placeholder="bca@university.edu"
+                placeholder="program@university.edu"
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
               />
             </div>
@@ -674,24 +719,24 @@ export function DepartmentsPage() {
               loading={creating}
               disabled={creating}
             >
-              Create Department
+              Create Program
             </Button>
           </div>
         </form>
       </Modal>
 
-      {/* Edit Department Modal */}
+      {/* Edit Program Modal */}
       <Modal
         isOpen={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         maxWidth="max-w-lg"
-        title="Edit Department"
-        subtitle="Update department metadata or reset login password"
+        title="Edit Academic Program"
+        subtitle="Update program metadata, branches, or reset login password"
       >
         <form onSubmit={handleEditSubmit} className="space-y-4 text-xs">
           <div>
             <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Department Name *
+              Program Name *
             </label>
             <input
               type="text"
@@ -704,102 +749,72 @@ export function DepartmentsPage() {
 
           <div>
             <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Department Code
+              Program Code
             </label>
             <input
               type="text"
               value={editForm.code}
               onChange={(e) => setEditForm({ ...editForm, code: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 uppercase"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-2">
-              Programs & Branches
+            <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              Branches / Specializations
             </label>
-            <div className="space-y-3">
-              {editForm.programs.map((p, idx) => (
-                <div key={idx} className="flex gap-2 items-start">
-                  <div className="flex-1 space-y-2">
-                    <input
-                      type="text"
-                      placeholder="Program Name (e.g. B.Tech)"
-                      value={p.name}
-                      onChange={(e) => {
-                        const newP = [...editForm.programs];
-                        newP[idx].name = e.target.value;
-                        setEditForm({ ...editForm, programs: newP });
-                      }}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
-                    />
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        placeholder="Add branch and press Enter..."
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            const val = e.target.value.trim();
-                            if (val) {
-                              const newP = [...editForm.programs];
-                              if (!Array.isArray(newP[idx].branches)) newP[idx].branches = [];
-                              if (!newP[idx].branches.includes(val)) {
-                                newP[idx].branches.push(val);
-                              }
-                              setEditForm({ ...editForm, programs: newP });
-                              e.target.value = "";
-                            }
-                          }
-                        }}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
-                      />
-                      {Array.isArray(p.branches) && p.branches.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {p.branches.map((b, bIdx) => (
-                            <span
-                              key={bIdx}
-                              className="px-2 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200 flex items-center gap-1.5"
-                            >
-                              {b}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newP = [...editForm.programs];
-                                  newP[idx].branches = newP[idx].branches.filter((_, i) => i !== bIdx);
-                                  setEditForm({ ...editForm, programs: newP });
-                                }}
-                                className="text-slate-400 hover:text-rose-500 cursor-pointer"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      const newP = editForm.programs.filter((_, i) => i !== idx);
-                      setEditForm({ ...editForm, programs: newP });
-                    }}
-                    className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+            <p className="text-[11px] text-slate-400 mb-2">
+              Add or remove branches belonging to this program
+            </p>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={editBranchInput}
+                  onChange={(e) => setEditBranchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddEditBranch();
+                    }
+                  }}
+                  placeholder="Add branch and press Enter..."
+                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddEditBranch}
+                  icon={Plus}
+                >
+                  Add
+                </Button>
+              </div>
+
+              {editForm.branches && editForm.branches.length > 0 ? (
+                <div className="flex flex-wrap gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 min-h-[42px]">
+                  {editForm.branches.map((b, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-slate-800 border border-slate-200 shadow-sm flex items-center gap-1.5"
+                    >
+                      {b}
+                      <button
+                        type="button"
+                        onClick={() => removeEditBranch(idx)}
+                        className="text-slate-400 hover:text-rose-500 cursor-pointer transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  ))}
                 </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setEditForm({ ...editForm, programs: [...editForm.programs, { name: "", branches: [] }] })}
-                className="w-full py-2 border-dashed rounded-xl text-xs flex items-center justify-center gap-2"
-              >
-                <Plus className="w-3 h-3" /> Add Program
-              </Button>
+              ) : (
+                <p className="text-[11px] text-slate-400 italic px-1">
+                  No branches added yet.
+                </p>
+              )}
             </div>
           </div>
 
@@ -880,15 +895,15 @@ export function DepartmentsPage() {
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         maxWidth="max-w-md"
-        title="Delete Department"
+        title="Delete Program"
         subtitle={deptToDelete?.name}
       >
         <div className="space-y-4 text-xs text-slate-600">
           <p>
-            Are you sure you want to delete the department <strong>"{deptToDelete?.name}"</strong>?
+            Are you sure you want to delete the program <strong>"{deptToDelete?.name}"</strong>?
           </p>
           <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px]">
-            Departments with active students or recruitment drives cannot be deleted without first clearing their records.
+            Programs with active students or recruitment drives cannot be deleted without first clearing their records.
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
@@ -909,7 +924,7 @@ export function DepartmentsPage() {
               disabled={deleting}
               onClick={handleDelete}
             >
-              Delete Department
+              Delete Program
             </Button>
           </div>
         </div>

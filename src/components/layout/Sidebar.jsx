@@ -35,7 +35,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
 
   const universityAdminLinks = [
     { to: "/institution/dashboard", label: "College Overview", icon: LayoutDashboard },
-    { to: "/institution/departments", label: "Departments & Branches", icon: Building2, badge: "Units" },
+    { to: "/institution/departments", label: "Programs & Branches", icon: Building2, badge: "Units" },
     { to: "/institution/assessments", label: "Assessments", icon: Layers },
     { to: "/institution/questions", label: "Question Bank", icon: BookOpen },
     { to: "/institution/profile", label: "College Profile", icon: Settings }

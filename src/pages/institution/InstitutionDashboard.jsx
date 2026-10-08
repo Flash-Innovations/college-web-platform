@@ -191,8 +191,8 @@ export function InstitutionDashboard() {
         <div className="lg:col-span-2 space-y-4">
           <Card>
             <CardHeader
-              title="Academic Departments"
-              subtitle="Department credentials allow autonomous placement operation"
+              title="Academic Programs"
+              subtitle="Program credentials allow autonomous placement operation"
               action={
                 <Link
                   to="/institution/departments"
@@ -208,16 +208,16 @@ export function InstitutionDashboard() {
                 <div className="w-12 h-12 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
                   <Layers className="w-6 h-6" />
                 </div>
-                <p className="text-sm font-semibold text-slate-700">No departments configured yet</p>
+                <p className="text-sm font-semibold text-slate-700">No programs configured yet</p>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  Create departments such as BCA, BBA, MBA, or CSE. Each department receives its own login credentials to manage students and recruitment drives.
+                  Create programs such as B.Tech, BCA, BBA, or MBA. Each program receives its own login credentials to manage students and recruitment drives.
                 </p>
                 <Button
                   size="sm"
                   icon={Plus}
                   onClick={() => navigate("/institution/departments?action=new")}
                 >
-                  Create First Department
+                  Create First Program
                 </Button>
               </div>
             ) : (
@@ -225,9 +225,9 @@ export function InstitutionDashboard() {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 uppercase tracking-wider font-bold">
                     <tr>
-                      <th className="py-3 px-4">Department</th>
+                      <th className="py-3 px-4">Program</th>
                       <th className="py-3 px-4">Username</th>
-                      <th className="py-3 px-4">Programs</th>
+                      <th className="py-3 px-4">Branches</th>
                       <th className="py-3 px-4">Status</th>
                       <th className="py-3 px-4 text-right">Action</th>
                     </tr>
@@ -250,9 +250,19 @@ export function InstitutionDashboard() {
                           {dept.username}
                         </td>
                         <td className="py-3 px-4 text-slate-500 max-w-xs truncate">
-                          {dept.programs && dept.programs.length > 0
-                            ? dept.programs.map(p => typeof p === 'object' ? p.name : p).join(", ")
-                            : "General"}
+                          {(() => {
+                            const bList = [];
+                            if (Array.isArray(dept.programs)) {
+                              dept.programs.forEach(p => {
+                                if (typeof p === 'object' && Array.isArray(p.branches)) bList.push(...p.branches);
+                              });
+                            }
+                            if (bList.length === 0 && Array.isArray(dept.branches)) {
+                              dept.branches.forEach(b => bList.push(typeof b === 'object' ? b.name : b));
+                            }
+                            const unique = Array.from(new Set(bList.filter(Boolean)));
+                            return unique.length > 0 ? unique.join(", ") : "General";
+                          })()}
                         </td>
                         <td className="py-3 px-4">
                           <Badge

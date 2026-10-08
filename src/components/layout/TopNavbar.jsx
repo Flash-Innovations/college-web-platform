@@ -212,7 +212,7 @@ export function TopNavbar({ onMenuClick }) {
                       className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-semibold text-slate-700"
                     >
                       <Layers className="w-4 h-4 text-slate-500" />
-                      Departments
+                      Programs & Branches
                     </button>
                   </>
                 )}
