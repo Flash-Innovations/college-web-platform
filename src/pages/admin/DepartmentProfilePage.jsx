@@ -15,8 +15,14 @@ import { Card, CardHeader } from "../../components/common/Card";
 import { Button } from "../../components/common/Button";
 
 export function DepartmentProfilePage() {
-  const { user, updateUser } = useAuth();
+  const { user, role, updateUser } = useAuth();
   const { showSuccess, showError } = useNotifications();
+
+  const isBranch = role === "branch_admin" || Boolean(user?.branchName);
+  const isDeptOrProgram = role === "department_admin" || role === "placement" || Boolean(user?.departmentName);
+
+  const pageTitle = isBranch ? "Branch Profile" : isDeptOrProgram ? "Program Profile" : "Department Profile";
+  const entityLabel = isBranch ? "Branch" : isDeptOrProgram ? "Program" : "Department";
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,15 +40,15 @@ export function DepartmentProfilePage() {
       const res = await institutionService.getDepartmentOwnProfile();
       const dept = res.department || {};
       setForm({
-        name: dept.name || user?.departmentName || "",
-        code: dept.code || "",
+        name: dept.name || user?.branchName || user?.departmentName || "",
+        code: dept.code || user?.branchCode || "",
         description: dept.description || "",
         contactEmail: dept.contactEmail || user?.email || "",
         contactPhone: dept.contactPhone || ""
       });
     } catch (err) {
-      console.error("Failed to load department profile:", err);
-      showError("Could not load department profile");
+      console.error("Failed to load profile:", err);
+      showError(`Could not load ${entityLabel.toLowerCase()} profile`);
     } finally {
       setLoading(false);
     }
@@ -55,7 +61,7 @@ export function DepartmentProfilePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) {
-      showError("Department name is required");
+      showError(`${entityLabel} name is required`);
       return;
     }
 
@@ -70,9 +76,13 @@ export function DepartmentProfilePage() {
       };
 
       const res = await institutionService.updateDepartmentOwnProfile(payload);
-      showSuccess("Department profile updated successfully");
+      showSuccess(`${pageTitle} updated successfully`);
       if (res.department) {
-        updateUser({ departmentName: res.department.name });
+        if (isBranch) {
+          updateUser({ branchName: res.department.name });
+        } else {
+          updateUser({ departmentName: res.department.name });
+        }
       }
     } catch (err) {
       console.error("Failed to update profile:", err);
@@ -94,21 +104,21 @@ export function DepartmentProfilePage() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Department Profile</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{pageTitle}</h1>
           <p className="text-gray-500 mt-1">
-            Manage your department details and contact information.
+            Manage your {entityLabel.toLowerCase()} details and contact information.
           </p>
         </div>
       </div>
 
       <Card>
-        <CardHeader icon={Building2} title="Basic Information" />
+        <CardHeader icon={Building2} title={`${entityLabel} Information`} />
         <div className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Department Name *
+                  {entityLabel} Name *
                 </label>
                 <input
                   type="text"
@@ -116,20 +126,20 @@ export function DepartmentProfilePage() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., Computer Science and Engineering"
+                  placeholder={isBranch ? "e.g., Computer Science & Engineering" : "e.g., Bachelors of Technology"}
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Department Code
+                  {entityLabel} Code
                 </label>
                 <input
                   type="text"
                   value={form.code}
                   onChange={(e) => setForm({ ...form, code: e.target.value })}
                   className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., CSE"
+                  placeholder={isBranch ? "e.g., CSE" : "e.g., BTECH"}
                 />
               </div>
 
@@ -144,7 +154,7 @@ export function DepartmentProfilePage() {
                     value={form.contactEmail}
                     onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
                     className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="dept@example.edu"
+                    placeholder="coordinator@example.edu"
                   />
                 </div>
               </div>
@@ -174,7 +184,7 @@ export function DepartmentProfilePage() {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   rows={4}
                   className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Brief description about the department..."
+                  placeholder={`Brief description about the ${entityLabel.toLowerCase()}...`}
                 />
               </div>
             </div>

@@ -47,6 +47,12 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
     user?.collegeName ||
     "Program";
 
+  const isBranchAdmin = role === "branch_admin" || Boolean(user?.branchName);
+
+  const displayUserName = isBranchAdmin
+    ? user?.branchName || user?.name || "Branch Coordinator"
+    : deptOrProgramName || user?.name || "Department Admin";
+
   const universityAdminLinks = [
     { to: "/institution/dashboard", label: "College Overview", icon: LayoutDashboard },
     { to: "/institution/departments", label: "Programs & Branches", icon: Building2, badge: "Units" },
@@ -110,9 +116,13 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
   ];
 
   const branchAdminLinks = [
-    { to: "/admin/students", label: "Branch Students (CRUD)", icon: Users },
-    { to: "/admin/assessments", label: "Branch Assessments", icon: Layers },
-    { to: "/admin/questions", label: "Subjects & Questions", icon: BookOpen },
+    { to: "/placement/dashboard", label: "Placement Overview", icon: LayoutDashboard },
+    { to: "/admin/students", label: "Branch Students (CRUD)", icon: Users, badge: "Manage" },
+    { to: "/placement/jobs", label: "Job Drives & Openings", icon: Briefcase, badge: "Drives" },
+    { to: "/admin/assessments", label: "Assessments", icon: Layers },
+    { to: "/admin/questions", label: "Question Bank", icon: BookOpen },
+    { to: "/placement/analytics", label: "Placement Analytics", icon: BarChart3 },
+    { to: "/placement/reports", label: "NBA / NIRF Reports", icon: FileSpreadsheet, badge: "Export" },
     { to: "/admin/profile", label: "Branch Profile", icon: Settings }
   ];
 
@@ -129,24 +139,24 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
   const portalHeading =
     role === "university_admin"
       ? (user?.institutionName ? `${user.institutionName}` : "University Admin Portal")
+      : isBranchAdmin
+      ? `${user?.branchName || "Branch"} Portal`
       : isDeptOrProgram
       ? `${deptOrProgramName}`
       : role === "placement"
       ? "Training & Placement Cell"
-      : role === "branch_admin"
-      ? `${user?.branchName || "Branch"} Portal`
       : "Department Portal";
 
   // Subtitle / Subtext for user card at bottom
   const roleSubtitle =
     role === "university_admin"
       ? "University Administrator"
+      : isBranchAdmin
+      ? (user?.branchCode ? `${user.branchCode} Coordinator` : "Branch Coordinator")
       : isDeptOrProgram
       ? (user?.departmentCode ? `${user.departmentCode} Placement Cell` : "Program Placement Unit")
       : role === "placement"
       ? "Training & Placement Officer"
-      : role === "branch_admin"
-      ? "Branch Coordinator"
       : "Department Admin";
 
   const handleLogout = () => {
@@ -281,15 +291,15 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
           >
             <Avatar
               src={user?.profileImageUrl || user?.logoUrl || user?.avatar}
-              name={deptOrProgramName || user?.name || "Program"}
+              name={displayUserName}
               isCollege={true}
               size="sm"
               className="border border-slate-200 shrink-0"
             />
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-900 truncate" title={deptOrProgramName || user?.name}>
-                  {deptOrProgramName || user?.name || "Department Admin"}
+                <p className="text-xs font-bold text-slate-900 truncate" title={displayUserName}>
+                  {displayUserName}
                 </p>
                 <p className="text-[11px] text-slate-400 capitalize truncate" title={roleSubtitle}>
                   {roleSubtitle}

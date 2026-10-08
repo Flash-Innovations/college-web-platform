@@ -104,7 +104,7 @@ export function AppRoutes() {
         {/* ========================================================================= */}
         {/* TRAINING & PLACEMENT CELL (TPO) WORKSPACE                                 */}
         {/* ========================================================================= */}
-        <Route element={<ProtectedRoute allowedRoles={["placement", "university_admin"]} />}>
+        <Route element={<ProtectedRoute allowedRoles={["placement", "university_admin", "branch_admin", "department_admin", "admin"]} />}>
           <Route element={<DashboardLayout />}>
             <Route path="/placement/dashboard" element={<PlacementDashboard />} />
             <Route path="/placement/branches" element={<BranchesPage />} />
