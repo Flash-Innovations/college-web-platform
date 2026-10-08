@@ -61,6 +61,16 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
       label: isDeptOrProgram ? "Program Overview" : "T&P Overview",
       icon: LayoutDashboard
     },
+    ...(isDeptOrProgram
+      ? [
+          {
+            to: "/placement/branches",
+            label: "Branch Management",
+            icon: Building2,
+            badge: "Branches"
+          }
+        ]
+      : []),
     {
       to: "/placement/students",
       label: isDeptOrProgram ? "Student Directory" : "Universal Student Directory",
@@ -91,12 +101,12 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
   ];
 
   const departmentAdminLinks = [
-    { to: "/admin/dashboard", label: "Dept Overview", icon: LayoutDashboard },
-    { to: "/admin/departments", label: "Branch Management", icon: Building2, badge: "Branches" },
-    { to: "/admin/students", label: "Department Students", icon: Users },
+    { to: "/admin/dashboard", label: "Program Overview", icon: LayoutDashboard },
+    { to: "/admin/branches", label: "Branch Management", icon: Building2, badge: "Branches" },
+    { to: "/admin/students", label: "Program Students", icon: Users },
     { to: "/admin/assessments", label: "Assessments", icon: Layers },
     { to: "/admin/questions", label: "Question Bank", icon: BookOpen },
-    { to: "/admin/profile", label: "Department Profile", icon: Settings }
+    { to: "/admin/profile", label: "Program Profile", icon: Settings }
   ];
 
   const branchAdminLinks = [

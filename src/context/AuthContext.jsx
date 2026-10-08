@@ -97,6 +97,24 @@ export function AuthProvider({ children }) {
         logoUrl: data.logoUrl || null,
         status: "Active"
       };
+    } else if (data.role === "BRANCH_ADMIN") {
+      mappedRole = "branch_admin";
+      userData = {
+        id: data.userId || data.branchId,
+        name: data.branchName ? `${data.branchName} Coordinator` : "Branch Coordinator",
+        email: identifier.includes("@") ? identifier : `${data.username || "branch"}@college.edu`,
+        username: data.username || identifier,
+        role: "branch_admin",
+        backendRole: data.role,
+        institutionId: data.institutionId,
+        institutionName: data.institutionName,
+        departmentId: data.departmentId,
+        departmentName: data.departmentName,
+        branchId: data.branchId,
+        branchName: data.branchName,
+        branchCode: data.branchCode,
+        status: "Active"
+      };
     } else {
       mappedRole = "student";
       userData = {

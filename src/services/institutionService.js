@@ -116,6 +116,16 @@ export const institutionService = {
    */
   async updateDepartmentOwnProfile(departmentData) {
     return await api.put('/api/institution/department/profile', departmentData);
+  },
+
+  /**
+   * Get branches under a department or the logged-in department
+   */
+  async getDepartmentBranches(departmentId) {
+    if (departmentId) {
+      return await api.get(`/api/institution/departments/${departmentId}/branches`);
+    }
+    return await api.get('/api/institution/department/branches');
   }
 };
 

@@ -32,6 +32,7 @@ const PlacementReportsPage = lazyNamed(() => import("../pages/placement/Placemen
 
 // Lazy-loaded Department / Assessment Pages
 const AdminDashboard = lazyNamed(() => import("../pages/admin/AdminDashboard"), "AdminDashboard");
+const BranchesPage = lazyNamed(() => import("../pages/admin/BranchesPage"), "BranchesPage");
 const AdminUserManagementPage = lazyNamed(() => import("../pages/admin/AdminUserManagementPage"), "AdminUserManagementPage");
 const AdminSettingsPage = lazyNamed(() => import("../pages/admin/AdminSettingsPage"), "AdminSettingsPage");
 const CollegeProfilePage = lazyNamed(() => import("../pages/admin/CollegeProfilePage"), "CollegeProfilePage");
@@ -106,14 +107,10 @@ export function AppRoutes() {
         <Route element={<ProtectedRoute allowedRoles={["placement", "university_admin"]} />}>
           <Route element={<DashboardLayout />}>
             <Route path="/placement/dashboard" element={<PlacementDashboard />} />
+            <Route path="/placement/branches" element={<BranchesPage />} />
             <Route path="/placement/students" element={<StudentManagementPage />} />
             <Route path="/placement/jobs" element={<JobDescriptionsPage />} />
             <Route path="/placement/job-descriptions" element={<JobDescriptionsPage />} />
-            <Route path="/placement/assessments" element={<AssessmentListPage />} />
-            <Route path="/placement/assessments/:assessmentId" element={<AssessmentBuilderPage />} />
-            <Route path="/placement/assessments/:assessmentId/results" element={<AssessmentResultsPage />} />
-            <Route path="/placement/questions" element={<QuestionListPage />} />
-            <Route path="/placement/questions/:questionId" element={<QuestionDetailsPage />} />
             <Route path="/placement/analytics" element={<PlacementAnalyticsPage />} />
             <Route path="/placement/reports" element={<PlacementReportsPage />} />
             <Route path="/placement/profile" element={<DepartmentProfilePage />} />
@@ -127,7 +124,8 @@ export function AppRoutes() {
         <Route element={<ProtectedRoute allowedRoles={["admin", "department_admin", "branch_admin", "placement", "university_admin"]} />}>
           <Route element={<DashboardLayout />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/departments" element={<DepartmentsPage />} />
+            <Route path="/admin/branches" element={<BranchesPage />} />
+            <Route path="/admin/departments" element={<BranchesPage />} />
             <Route path="/admin/students" element={<StudentManagementPage />} />
             <Route path="/admin/assessments" element={<AssessmentListPage />} />
             <Route path="/admin/assessments/:assessmentId" element={<AssessmentBuilderPage />} />
