@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import {
   Users,
   Download,
@@ -18,8 +19,10 @@ import {
   GraduationCap,
   UserX,
   ShieldAlert,
-  AlertTriangle
+  AlertTriangle,
+  Info
 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 import { placementService } from "../../services/placementService";
 import { adminService } from "../../services/adminService";
 import { DataTable } from "../../components/common/DataTable";
@@ -31,6 +34,14 @@ import Avatar from "../../components/common/Avatar";
 import { useNotifications } from "../../context/NotificationContext";
 
 export function StudentManagementPage() {
+  const { user, role } = useAuth();
+  const location = useLocation();
+
+  // T&P / Placement role is strictly read-only for student creation/upload/deletion.
+  // Student roster is populated directly by academic branch coordinators.
+  const isPlacementRole = role === "placement" || location.pathname.startsWith("/placement");
+  const canModifyStudents = !isPlacementRole && (role === "admin" || role === "branch_admin" || role === "department_admin" || role === "university_admin");
+
   const { showSuccess, showError, showWarning, showInfo } = useNotifications();
   const [students, setStudents] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState("All");
@@ -920,14 +931,16 @@ export function StudentManagementPage() {
                 </button>
               </>
             )}
-            <button
-              type="button"
-              onClick={() => handleOpenDeleteModal(row)}
-              className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
-              title="Delete student and all records"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+            {canModifyStudents && (
+              <button
+                type="button"
+                onClick={() => handleOpenDeleteModal(row)}
+                className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
+                title="Delete student and all records"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         );
       }
@@ -944,31 +957,37 @@ export function StudentManagementPage() {
             Batch Student Directory & Placement Profiles
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Search, filter, and inspect comprehensive placement readiness scores for all registered students.
+            {isPlacementRole
+              ? "Review and inspect comprehensive placement readiness scores, skills, and placement offers for students enrolled by their academic branches."
+              : "Search, filter, and inspect comprehensive placement readiness scores for all registered students."}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            icon={Upload}
-            onClick={() => {
-              setImportModalOpen(true);
-              setImportResult(null);
-              setImportError(null);
-            }}
-          >
-            Import CSV
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            icon={UserPlus}
-            onClick={() => setAddModalOpen(true)}
-          >
-            Add Student
-          </Button>
+          {canModifyStudents && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={Upload}
+                onClick={() => {
+                  setImportModalOpen(true);
+                  setImportResult(null);
+                  setImportError(null);
+                }}
+              >
+                Import CSV
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                icon={UserPlus}
+                onClick={() => setAddModalOpen(true)}
+              >
+                Add Student
+              </Button>
+            </>
+          )}
           <Button
             variant="secondary"
             size="sm"
@@ -981,6 +1000,16 @@ export function StudentManagementPage() {
           </Button>
         </div>
       </div>
+
+      {/* Info Pill for Placement Cell */}
+      {isPlacementRole && (
+        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-2.5 text-xs text-slate-700">
+          <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+          <span className="leading-relaxed">
+            <strong>Branch-Enrolled Candidate Directory:</strong> Student credentials and cohort enrollments are managed directly by Branch Coordinators. The placement team inspects candidate readiness scores, verifies eligibility for recruitment drives, and records placement offers.
+          </span>
+        </div>
+      )}
 
       {/* Floating Bulk Selection Actions Bar */}
       {selectedStudentIds.length > 0 && (
@@ -1030,15 +1059,17 @@ export function StudentManagementPage() {
               <span>Restore Access</span>
             </button>
 
-            <button
-              type="button"
-              onClick={handleOpenBulkDeleteModal}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-600/30 hover:bg-red-600/50 text-red-200 border border-red-500/40 text-xs font-semibold transition-colors cursor-pointer"
-              title="Permanently delete selected candidates and cleanup records"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-red-400" />
-              <span>Delete Selected</span>
-            </button>
+            {canModifyStudents && (
+              <button
+                type="button"
+                onClick={handleOpenBulkDeleteModal}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-600/30 hover:bg-red-600/50 text-red-200 border border-red-500/40 text-xs font-semibold transition-colors cursor-pointer"
+                title="Permanently delete selected candidates and cleanup records"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                <span>Delete Selected</span>
+              </button>
+            )}
 
             <button
               type="button"

@@ -73,16 +73,6 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
       badge: "Drives"
     },
     {
-      to: "/placement/assessments",
-      label: "Assessments",
-      icon: Layers
-    },
-    {
-      to: "/placement/questions",
-      label: "Question Bank",
-      icon: BookOpen
-    },
-    {
       to: "/placement/analytics",
       label: "Placement Analytics",
       icon: BarChart3
