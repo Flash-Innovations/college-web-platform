@@ -732,6 +732,78 @@ export const practiceService = {
   async getAssessmentCandidateDetail(assessmentId, attemptId) {
     const res = await practiceApi.get(`/api/admin/assessments/${assessmentId}/results/${attemptId}`);
     return res?.data || res;
+  },
+
+  /**
+   * =========================================================================
+   * CURRICULUM & SUBJECT MANAGEMENT APIs
+   * =========================================================================
+   */
+
+  /**
+   * List all subjects with optional filters (type, department, scope, search)
+   */
+  async getSubjects(params = {}) {
+    const query = new URLSearchParams();
+    if (params.type && params.type !== 'ALL') query.set('type', params.type);
+    if (params.departmentId && params.departmentId !== 'ALL') query.set('departmentId', params.departmentId);
+    if (params.search) query.set('search', params.search);
+    if (params.scope && params.scope !== 'ALL') query.set('scope', params.scope);
+    if (params.status && params.status !== 'ALL') query.set('status', params.status);
+
+    const qs = query.toString();
+    const res = await practiceApi.get(`/api/subjects${qs ? `?${qs}` : ''}`);
+    return res?.data || res;
+  },
+
+  /**
+   * Get single subject by ID
+   */
+  async getSubjectById(subjectId) {
+    const res = await practiceApi.get(`/api/subjects/${subjectId}`);
+    return res?.data || res;
+  },
+
+  /**
+   * Create a new subject
+   */
+  async createSubject(data) {
+    const res = await practiceApi.post('/api/admin/subjects', data);
+    invalidateCache('subjects');
+    return res?.data || res;
+  },
+
+  /**
+   * Update subject
+   */
+  async updateSubject(subjectId, data) {
+    const res = await practiceApi.put(`/api/admin/subjects/${subjectId}`, data);
+    invalidateCache('subjects');
+    return res?.data || res;
+  },
+
+  /**
+   * Delete subject
+   */
+  async deleteSubject(subjectId) {
+    const res = await practiceApi.delete(`/api/admin/subjects/${subjectId}`);
+    invalidateCache('subjects');
+    return res?.data || res;
+  },
+
+  /**
+   * Get personalized curriculum for student
+   */
+  async getStudentCurriculum(params = {}) {
+    const query = new URLSearchParams();
+    if (params.department) query.set('department', params.department);
+    if (params.branch) query.set('branch', params.branch);
+    if (params.course) query.set('course', params.course);
+    if (params.collegeId) query.set('collegeId', params.collegeId);
+
+    const qs = query.toString();
+    const res = await practiceApi.get(`/api/practice/student/curriculum${qs ? `?${qs}` : ''}`);
+    return res?.data || res;
   }
 };
 

@@ -39,6 +39,7 @@ const CollegeProfilePage = lazyNamed(() => import("../pages/admin/CollegeProfile
 const DepartmentProfilePage = lazyNamed(() => import("../pages/admin/DepartmentProfilePage"), "DepartmentProfilePage");
 const QuestionListPage = lazyNamed(() => import("../pages/admin/QuestionListPage"), "QuestionListPage");
 const QuestionDetailsPage = lazyNamed(() => import("../pages/admin/QuestionDetailsPage"), "QuestionDetailsPage");
+const SubjectsPage = lazyNamed(() => import("../pages/admin/SubjectsPage"), "SubjectsPage");
 const AssessmentListPage = lazyNamed(() => import("../pages/admin/AssessmentListPage"), "AssessmentListPage");
 const AssessmentBuilderPage = lazyNamed(() => import("../pages/admin/AssessmentBuilderPage"), "AssessmentBuilderPage");
 const AssessmentResultsPage = lazyNamed(() => import("../pages/admin/AssessmentResultsPage"), "AssessmentResultsPage");
@@ -95,6 +96,7 @@ export function AppRoutes() {
             <Route path="/institution/assessments" element={<AssessmentListPage />} />
             <Route path="/institution/assessments/:assessmentId" element={<AssessmentBuilderPage />} />
             <Route path="/institution/assessments/:assessmentId/results" element={<AssessmentResultsPage />} />
+            <Route path="/institution/subjects" element={<SubjectsPage />} />
             <Route path="/institution/questions" element={<QuestionListPage />} />
             <Route path="/institution/questions/:questionId" element={<QuestionDetailsPage />} />
             <Route path="/university_admin/dashboard" element={<InstitutionDashboard />} />
@@ -130,6 +132,7 @@ export function AppRoutes() {
             <Route path="/admin/assessments" element={<AssessmentListPage />} />
             <Route path="/admin/assessments/:assessmentId" element={<AssessmentBuilderPage />} />
             <Route path="/admin/assessments/:assessmentId/results" element={<AssessmentResultsPage />} />
+            <Route path="/admin/subjects" element={<SubjectsPage />} />
             <Route path="/admin/questions" element={<QuestionListPage />} />
             <Route path="/admin/questions/:questionId" element={<QuestionDetailsPage />} />
             <Route path="/admin/users" element={<AdminUserManagementPage />} />

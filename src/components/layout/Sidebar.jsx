@@ -56,6 +56,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
   const universityAdminLinks = [
     { to: "/institution/dashboard", label: "College Overview", icon: LayoutDashboard },
     { to: "/institution/departments", label: "Programs & Branches", icon: Building2, badge: "Units" },
+    { to: "/institution/subjects", label: "Curriculum & Subjects", icon: GraduationCap },
     { to: "/institution/assessments", label: "Assessments", icon: Layers },
     { to: "/institution/questions", label: "Question Bank", icon: BookOpen },
     { to: "/institution/profile", label: "College Profile", icon: Settings }
@@ -110,6 +111,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
     { to: "/admin/dashboard", label: "Program Overview", icon: LayoutDashboard },
     { to: "/admin/branches", label: "Branch Management", icon: Building2, badge: "Branches" },
     { to: "/admin/students", label: "Program Students", icon: Users },
+    { to: "/admin/subjects", label: "Curriculum & Subjects", icon: GraduationCap },
     { to: "/admin/assessments", label: "Assessments", icon: Layers },
     { to: "/admin/questions", label: "Question Bank", icon: BookOpen },
     { to: "/admin/profile", label: "Program Profile", icon: Settings }
@@ -119,6 +121,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
     { to: "/placement/dashboard", label: "Placement Overview", icon: LayoutDashboard },
     { to: "/admin/students", label: "Branch Students (CRUD)", icon: Users, badge: "Manage" },
     { to: "/placement/jobs", label: "Job Drives & Openings", icon: Briefcase, badge: "Drives" },
+    { to: "/admin/subjects", label: "Curriculum & Subjects", icon: GraduationCap },
     { to: "/admin/assessments", label: "Assessments", icon: Layers },
     { to: "/admin/questions", label: "Question Bank", icon: BookOpen },
     { to: "/placement/analytics", label: "Placement Analytics", icon: BarChart3 },
