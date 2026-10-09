@@ -792,10 +792,52 @@ export const practiceService = {
   },
 
   /**
+   * Get Master Global Subject & Question Catalog available for college adoption
+   */
+  async getGlobalCatalog(params = {}) {
+    const query = new URLSearchParams();
+    if (params.type && params.type !== 'ALL') query.set('type', params.type);
+    if (params.search) query.set('search', params.search);
+
+    const qs = query.toString();
+    const res = await practiceApi.get(`/api/subjects/global-catalog${qs ? `?${qs}` : ''}`);
+    return res?.data || res;
+  },
+
+  /**
+   * College adopts a global subject with department allocations
+   */
+  async adoptGlobalSubject(data) {
+    const res = await practiceApi.post('/api/admin/subjects/adopt', data);
+    invalidateCache('subjects');
+    return res?.data || res;
+  },
+
+  /**
+   * Assign subject to departments (College Level)
+   */
+  async assignDepartmentSubjects(subjectId, data) {
+    const res = await practiceApi.put(`/api/admin/subjects/${subjectId}/assign-departments`, data);
+    invalidateCache('subjects');
+    return res?.data || res;
+  },
+
+  /**
+   * Assign subject to branches (Department Level)
+   */
+  async assignBranchSubjects(subjectId, data) {
+    const res = await practiceApi.put(`/api/department/subjects/${subjectId}/assign-branches`, data);
+    invalidateCache('subjects');
+    return res?.data || res;
+  },
+
+  /**
    * Get personalized curriculum for student
    */
   async getStudentCurriculum(params = {}) {
     const query = new URLSearchParams();
+    if (params.departmentId) query.set('departmentId', params.departmentId);
+    if (params.branchId) query.set('branchId', params.branchId);
     if (params.department) query.set('department', params.department);
     if (params.branch) query.set('branch', params.branch);
     if (params.course) query.set('course', params.course);
