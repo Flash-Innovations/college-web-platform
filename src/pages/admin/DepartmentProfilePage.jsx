@@ -13,6 +13,7 @@ import { useNotifications } from "../../context/NotificationContext";
 import { institutionService } from "../../services/institutionService";
 import { Card, CardHeader } from "../../components/common/Card";
 import { Button } from "../../components/common/Button";
+import { DetailSkeleton } from "../../components/common/LoadingSkeleton";
 
 export function DepartmentProfilePage() {
   const { user, role, updateUser } = useAuth();
@@ -93,11 +94,7 @@ export function DepartmentProfilePage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <RefreshCw className="w-8 h-8 animate-spin text-gray-400" />
-      </div>
-    );
+    return <DetailSkeleton />;
   }
 
   return (

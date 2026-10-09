@@ -300,9 +300,23 @@ export function AssessmentListPage() {
       {/* Assessment Cards Grid */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         {loading ? (
-          <div className="py-20 text-center space-y-3">
-            <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin mx-auto" />
-            <p className="text-sm font-medium text-slate-600">Loading assessments...</p>
+          <div className="p-6 space-y-4 animate-pulse">
+            <div className="flex gap-4 py-3 border-b border-slate-100">
+              <div className="h-4 bg-slate-200 rounded flex-2" />
+              <div className="h-4 bg-slate-200 rounded flex-1" />
+              <div className="h-4 bg-slate-200 rounded flex-1" />
+              <div className="h-4 bg-slate-200 rounded flex-1" />
+              <div className="h-4 bg-slate-200 rounded flex-1" />
+            </div>
+            {Array.from({ length: 5 }).map((_, r) => (
+              <div key={r} className="flex gap-4 py-3.5 border-b border-slate-50 last:border-0 items-center">
+                <div className="h-4 bg-slate-200 rounded flex-2" />
+                <div className="h-4 bg-slate-100 rounded flex-1" />
+                <div className="h-4 bg-slate-100 rounded flex-1" />
+                <div className="h-4 bg-slate-100 rounded flex-1" />
+                <div className="h-4 bg-slate-200 rounded flex-1" />
+              </div>
+            ))}
           </div>
         ) : error ? (
           <div className="py-16 text-center space-y-3">

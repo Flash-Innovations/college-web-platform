@@ -43,6 +43,7 @@ import { Card } from "../../components/common/Card";
 import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
 import { Modal } from "../../components/common/Modal";
+import { CardGridSkeleton } from "../../components/common/LoadingSkeleton";
 import { useNotifications } from "../../context/NotificationContext";
 import { useAuth } from "../../context/AuthContext";
 
@@ -649,10 +650,7 @@ export function SubjectsPage() {
       {viewMode === "CURRICULUM" ? (
         /* ACTIVE CURRICULUM VIEW */
         loading ? (
-          <div className="py-16 text-center space-y-3">
-            <RefreshCw className="w-8 h-8 animate-spin mx-auto text-indigo-600 dark:text-indigo-400" />
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Loading university curriculum subjects...</p>
-          </div>
+          <CardGridSkeleton count={6} />
         ) : error ? (
           <Card className="p-6 border-rose-200 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/30 text-center space-y-3">
             <AlertCircle className="w-8 h-8 text-rose-600 dark:text-rose-400 mx-auto" />
@@ -874,10 +872,7 @@ export function SubjectsPage() {
       ) : (
         /* GLOBAL SIPS CATALOG VIEW */
         catalogLoading ? (
-          <div className="py-16 text-center space-y-3">
-            <RefreshCw className="w-8 h-8 animate-spin mx-auto text-indigo-600 dark:text-indigo-400" />
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Loading SIPS global repository...</p>
-          </div>
+          <CardGridSkeleton count={6} />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {globalCatalog.map((sub) => {

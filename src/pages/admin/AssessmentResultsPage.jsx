@@ -28,6 +28,7 @@ import { adminService } from "../../services/adminService";
 import { Badge } from "../../components/common/Badge";
 import { Button } from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
+import { TableSkeleton } from "../../components/common/LoadingSkeleton";
 import { useNotifications } from "../../context/NotificationContext";
 
 export function AssessmentResultsPage() {
@@ -255,9 +256,8 @@ export function AssessmentResultsPage() {
 
   if (loading && !assessment) {
     return (
-      <div className="py-24 text-center space-y-3">
-        <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin mx-auto" />
-        <p className="text-sm font-medium text-slate-600">Loading Candidate Assessment Results...</p>
+      <div className="max-w-7xl mx-auto py-6">
+        <TableSkeleton />
       </div>
     );
   }

@@ -28,6 +28,7 @@ import { Badge } from "../../components/common/Badge";
 import { Button } from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import { ProblemStatement } from "../../components/common/ProblemStatement";
+import { DetailSkeleton } from "../../components/common/LoadingSkeleton";
 import { useNotifications } from "../../context/NotificationContext";
 
 export function QuestionDetailsPage() {
@@ -122,12 +123,7 @@ export function QuestionDetailsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="py-24 text-center space-y-3">
-        <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin mx-auto" />
-        <p className="text-sm font-medium text-slate-600">Loading question details & versions...</p>
-      </div>
-    );
+    return <DetailSkeleton />;
   }
 
   if (error || !question) {
