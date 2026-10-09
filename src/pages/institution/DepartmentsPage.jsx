@@ -18,7 +18,8 @@ import {
   Info,
   X,
   Eye,
-  EyeOff
+  EyeOff,
+  Code2
 } from "lucide-react";
 import { useNotifications } from "../../context/NotificationContext";
 import { institutionService } from "../../services/institutionService";
@@ -46,7 +47,8 @@ export function DepartmentsPage() {
     password: "",
     branches: [],
     contactEmail: "",
-    contactPhone: ""
+    contactPhone: "",
+    codingArenaEnabled: true
   });
   const [createErrors, setCreateErrors] = useState({});
   const [showCreatePassword, setShowCreatePassword] = useState(false);
@@ -62,6 +64,7 @@ export function DepartmentsPage() {
     branches: [],
     contactEmail: "",
     contactPhone: "",
+    codingArenaEnabled: true,
     newPassword: ""
   });
   const [showEditPassword, setShowEditPassword] = useState(false);
@@ -170,7 +173,8 @@ export function DepartmentsPage() {
         branches: branchesArr,
         programs: programsArr,
         contactEmail: createForm.contactEmail.trim().toLowerCase(),
-        contactPhone: createForm.contactPhone.trim()
+        contactPhone: createForm.contactPhone.trim(),
+        codingArenaEnabled: Boolean(createForm.codingArenaEnabled)
       };
 
       const res = await institutionService.createDepartment(payload);
@@ -184,7 +188,8 @@ export function DepartmentsPage() {
         password: "",
         branches: [],
         contactEmail: "",
-        contactPhone: ""
+        contactPhone: "",
+        codingArenaEnabled: true
       });
       loadDepartments();
     } catch (err) {
@@ -221,6 +226,7 @@ export function DepartmentsPage() {
       branches: initialBranches,
       contactEmail: dept.contactEmail || "",
       contactPhone: dept.contactPhone || "",
+      codingArenaEnabled: dept.codingArenaEnabled !== false,
       newPassword: ""
     });
     setEditBranchInput("");
@@ -250,7 +256,8 @@ export function DepartmentsPage() {
         branches: branchesArr,
         programs: programsArr,
         contactEmail: editForm.contactEmail.trim().toLowerCase(),
-        contactPhone: editForm.contactPhone.trim()
+        contactPhone: editForm.contactPhone.trim(),
+        codingArenaEnabled: Boolean(editForm.codingArenaEnabled)
       };
 
       if (editForm.newPassword && editForm.newPassword.trim()) {
@@ -280,6 +287,21 @@ export function DepartmentsPage() {
     } catch (err) {
       console.error("Failed to toggle program status:", err);
       showError(err.message || "Failed to toggle status");
+    }
+  };
+
+  const handleToggleCodingArena = async (dept) => {
+    const currentEnabled = dept.codingArenaEnabled !== false;
+    const newEnabled = !currentEnabled;
+    try {
+      await institutionService.toggleDepartmentCodingArena(dept._id, newEnabled);
+      showSuccess(`Coding Arena ${newEnabled ? 'enabled' : 'disabled'} for "${dept.name}"`);
+      setDepartments((prev) =>
+        prev.map((d) => (d._id === dept._id ? { ...d, codingArenaEnabled: newEnabled } : d))
+      );
+    } catch (err) {
+      console.error("Failed to toggle program coding arena:", err);
+      showError(err.message || "Failed to toggle coding arena");
     }
   };
 
@@ -398,6 +420,7 @@ export function DepartmentsPage() {
                   <th className="py-3 px-4">Code</th>
                   <th className="py-3 px-4">Sign-in Username</th>
                   <th className="py-3 px-4">Branches</th>
+                  <th className="py-3 px-4">Coding Arena</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
@@ -470,6 +493,22 @@ export function DepartmentsPage() {
                       </td>
 
                       <td className="py-3.5 px-4">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleCodingArena(dept)}
+                          title={dept.codingArenaEnabled !== false ? "Click to Disable Coding Arena for this program" : "Click to Enable Coding Arena for this program"}
+                          className="cursor-pointer inline-flex items-center gap-1 group"
+                        >
+                          <Badge
+                            variant={dept.codingArenaEnabled !== false ? "success" : "neutral"}
+                            className="text-[10px] group-hover:ring-2 group-hover:ring-indigo-500/20 transition-all"
+                          >
+                            {dept.codingArenaEnabled !== false ? "Enabled" : "Disabled"}
+                          </Badge>
+                        </button>
+                      </td>
+
+                      <td className="py-3.5 px-4">
                         <Badge
                           variant={dept.status === "ACTIVE" ? "success" : "neutral"}
                           className="text-[10px]"
@@ -480,6 +519,19 @@ export function DepartmentsPage() {
 
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCodingArena(dept)}
+                            title={dept.codingArenaEnabled !== false ? "Turn Off Coding Arena" : "Turn On Coding Arena"}
+                            className={`p-1.5 rounded-lg border text-xs cursor-pointer transition-colors ${
+                              dept.codingArenaEnabled !== false
+                                ? "text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                                : "text-slate-400 border-slate-200 hover:text-indigo-600 hover:bg-indigo-50"
+                            }`}
+                          >
+                            <Code2 className="w-3.5 h-3.5" />
+                          </button>
+
                           <button
                             type="button"
                             onClick={() => handleToggleStatus(dept)}
@@ -703,6 +755,27 @@ export function DepartmentsPage() {
             </div>
           </div>
 
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+            <div className="space-y-0.5 pr-4">
+              <label className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+                <Code2 className="w-3.5 h-3.5 text-indigo-600" />
+                Allow Students in this Program to Access Coding Arena
+              </label>
+              <p className="text-[10px] text-slate-500">
+                When enabled, students belonging to this academic program can practice live compiler challenges in the Coding Arena.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={createForm.codingArenaEnabled}
+                onChange={(e) => setCreateForm({ ...createForm, codingArenaEnabled: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+          </div>
+
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <Button
               type="button"
@@ -866,6 +939,27 @@ export function DepartmentsPage() {
                 {showEditPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
             </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+            <div className="space-y-0.5 pr-4">
+              <label className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+                <Code2 className="w-3.5 h-3.5 text-indigo-600" />
+                Allow Students in this Program to Access Coding Arena
+              </label>
+              <p className="text-[10px] text-slate-500">
+                When enabled, students belonging to this academic program can practice live compiler challenges in the Coding Arena.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={editForm.codingArenaEnabled}
+                onChange={(e) => setEditForm({ ...editForm, codingArenaEnabled: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">

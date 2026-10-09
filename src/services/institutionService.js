@@ -70,6 +70,13 @@ export const institutionService = {
   },
 
   /**
+   * Toggle Coding Arena access for an entire department / program
+   */
+  async toggleDepartmentCodingArena(departmentId, enabled) {
+    return await api.patch(`/api/institution/departments/${departmentId}/coding-arena`, { enabled });
+  },
+
+  /**
    * Delete a department (must have 0 active students/jobs or force)
    */
   async deleteDepartment(departmentId) {
@@ -95,6 +102,13 @@ export const institutionService = {
    */
   async updateBranch(departmentId, branchId, branchData) {
     return await api.put(`/api/institution/departments/${departmentId}/branches/${branchId}`, branchData);
+  },
+
+  /**
+   * Toggle Coding Arena access for a specific branch
+   */
+  async toggleBranchCodingArena(departmentId, branchId, enabled) {
+    return await api.patch(`/api/institution/departments/${departmentId}/branches/${branchId}/coding-arena`, { enabled });
   },
 
   /**

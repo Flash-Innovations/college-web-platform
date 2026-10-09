@@ -231,6 +231,22 @@ export function BranchesPage() {
     }
   };
 
+  const handleToggleCodingArena = async (br) => {
+    const branchId = br._id || br.id;
+    const currentEnabled = br.codingArenaEnabled !== false;
+    const newEnabled = !currentEnabled;
+    try {
+      await institutionService.toggleBranchCodingArena(activeDeptId, branchId, newEnabled);
+      showSuccess(`Coding Arena ${newEnabled ? 'enabled' : 'disabled'} for branch "${br.name}"`);
+      setBranches((prev) =>
+        prev.map((b) => ((b._id === branchId || b.id === branchId) ? { ...b, codingArenaEnabled: newEnabled } : b))
+      );
+    } catch (err) {
+      console.error("Failed to toggle branch coding arena:", err);
+      showError(err.message || "Failed to toggle coding arena access");
+    }
+  };
+
   const handleDelete = async () => {
     if (!branchToDelete) return;
     const branchId = branchToDelete._id || branchToDelete.id;
@@ -402,12 +418,19 @@ export function BranchesPage() {
                       </td>
 
                       <td className="py-3.5 px-4">
-                        <Badge
-                          variant={br.codingArenaEnabled !== false ? "success" : "neutral"}
-                          className="text-[10px]"
+                        <button
+                          type="button"
+                          onClick={() => handleToggleCodingArena(br)}
+                          title={br.codingArenaEnabled !== false ? "Click to Disable Coding Arena for this branch" : "Click to Enable Coding Arena for this branch"}
+                          className="cursor-pointer inline-flex items-center gap-1 group"
                         >
-                          {br.codingArenaEnabled !== false ? "Enabled" : "Disabled"}
-                        </Badge>
+                          <Badge
+                            variant={br.codingArenaEnabled !== false ? "success" : "neutral"}
+                            className="text-[10px] group-hover:ring-2 group-hover:ring-indigo-500/20 transition-all"
+                          >
+                            {br.codingArenaEnabled !== false ? "Enabled" : "Disabled"}
+                          </Badge>
+                        </button>
                       </td>
 
                       <td className="py-3.5 px-4">
@@ -421,6 +444,19 @@ export function BranchesPage() {
 
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCodingArena(br)}
+                            title={br.codingArenaEnabled !== false ? "Turn Off Coding Arena" : "Turn On Coding Arena"}
+                            className={`p-1.5 rounded-lg border text-xs cursor-pointer transition-colors ${
+                              br.codingArenaEnabled !== false
+                                ? "text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                                : "text-slate-400 border-slate-200 hover:text-indigo-600 hover:bg-indigo-50"
+                            }`}
+                          >
+                            <Code2 className="w-3.5 h-3.5" />
+                          </button>
+
                           <button
                             type="button"
                             onClick={() => handleToggleStatus(br)}
