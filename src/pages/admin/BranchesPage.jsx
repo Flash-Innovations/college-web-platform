@@ -84,15 +84,15 @@ export function BranchesPage() {
   const activeDeptId = selectedDeptId || user?.departmentId || user?.id;
 
   const loadBranches = async (targetId = activeDeptId) => {
-    if (!targetId) return;
     try {
       setLoading(true);
-      const res = await institutionService.getDepartmentBranches(targetId);
+      const effectiveId = targetId || user?.departmentId || undefined;
+      const res = await institutionService.getDepartmentBranches(effectiveId);
       setBranches(res.branches || []);
       setDepartmentInfo({
         name: res.departmentName || user?.departmentName || user?.name || "Program",
         code: res.departmentCode || user?.departmentCode || "",
-        id: res.departmentId || targetId
+        id: res.departmentId || effectiveId
       });
     } catch (err) {
       console.error("Failed to load branches:", err);

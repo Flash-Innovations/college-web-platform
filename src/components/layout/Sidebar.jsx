@@ -124,6 +124,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
 
   const branchAdminLinks = [
     { to: "/branch/dashboard", label: "Branch Overview", icon: LayoutDashboard },
+    { to: "/branch/branches", label: "Branch Management", icon: Building2, badge: "Branches" },
     { to: "/branch/students", label: "Branch Students (CRUD)", icon: Users, badge: "Manage" },
     { to: "/branch/jobs", label: "Job Drives & Openings", icon: Briefcase, badge: "Drives" },
     { to: "/branch/subjects", label: "Curriculum & Subjects", icon: GraduationCap },
