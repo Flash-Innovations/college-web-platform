@@ -23,18 +23,27 @@ import {
   Briefcase,
   BarChart3
 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 import { practiceService } from "../../services/practiceService";
 import { placementService } from "../../services/placementService";
+import { institutionService } from "../../services/institutionService";
 import { Badge } from "../../components/common/Badge";
 import { Button } from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
 import { useNotifications } from "../../context/NotificationContext";
 
 export function AssessmentListPage() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const basePath = location.pathname.startsWith("/placement") ? "/placement" : location.pathname.startsWith("/institution") ? "/institution" : "/admin";
+  const basePath = location.pathname.startsWith("/placement") ? "/placement" : location.pathname.startsWith("/institution") ? "/institution" : location.pathname.startsWith("/tpo") ? "/tpo" : location.pathname.startsWith("/branch") ? "/branch" : "/dept";
   const { addToast } = useNotifications();
+
+  // Role permissions
+  const isBranchAdmin = user?.role === "branch_admin" || Boolean(user?.branchName);
+  const isTpo = (user?.role === "tpo" || user?.role === "placement") ||
+    Boolean(user?.departmentName?.toLowerCase().includes("tpo") || user?.departmentName?.toLowerCase().includes("placement") || user?.name?.toLowerCase().includes("tpo") || user?.name?.toLowerCase().includes("placement"));
+  const canCreate = !isTpo;
 
   // Filter States
   const [search, setSearch] = useState("");
@@ -50,6 +59,8 @@ export function AssessmentListPage() {
   // Data & Loading States
   const [assessments, setAssessments] = useState([]);
   const [drivesList, setDrivesList] = useState([]);
+  const [branchesList, setBranchesList] = useState([]);
+  const [selectedBranchIds, setSelectedBranchIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -68,7 +79,21 @@ export function AssessmentListPage() {
     placementService.getJobs()
       .then((jobs) => setDrivesList(Array.isArray(jobs) ? jobs : []))
       .catch(() => setDrivesList([]));
-  }, []);
+
+    if (!isTpo) {
+      if (isBranchAdmin) {
+        const brVal = user?.branchId || user?.branchCode || user?.branchName;
+        if (brVal) setSelectedBranchIds([brVal]);
+      } else {
+        institutionService.getDepartmentBranches()
+          .then((res) => {
+            const list = res?.branches || (Array.isArray(res) ? res : []);
+            setBranchesList(list);
+          })
+          .catch(() => setBranchesList([]));
+      }
+    }
+  }, [isTpo, isBranchAdmin, user]);
 
   const fetchAssessments = useCallback(async () => {
     setLoading(true);
@@ -129,11 +154,16 @@ export function AssessmentListPage() {
           ? "MOCK_ASSESSMENT"
           : newAssessment.type;
 
+      const resolvedBranches = isBranchAdmin
+        ? [user?.branchId || user?.branchCode || user?.branchName].filter(Boolean)
+        : selectedBranchIds;
+
       const payload = {
         title: newAssessment.title.trim(),
         description: newAssessment.description?.trim() || "",
         type: resolvedType || "MOCK_ASSESSMENT",
         durationMinutes: parseInt(newAssessment.durationMinutes, 10) || 60,
+        branchIds: resolvedBranches,
         sipsDriveId: newAssessment.sipsDriveId?.trim() || null
       };
 
@@ -149,6 +179,7 @@ export function AssessmentListPage() {
         });
       }
       setCreateModalOpen(false);
+      setSelectedBranchIds(isBranchAdmin ? [user?.branchId || user?.branchCode || user?.branchName].filter(Boolean) : []);
       setNewAssessment({
         title: "",
         description: "",
@@ -228,15 +259,17 @@ export function AssessmentListPage() {
             <span>Refresh</span>
           </Button>
 
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setCreateModalOpen(true)}
-            className="flex items-center gap-2 shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create Assessment</span>
-          </Button>
+          {canCreate && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setCreateModalOpen(true)}
+              className="flex items-center gap-2 shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create Assessment</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -335,11 +368,15 @@ export function AssessmentListPage() {
             <Layers className="w-10 h-10 text-slate-300 mx-auto" />
             <p className="text-base font-semibold text-slate-800">No assessments found</p>
             <p className="text-sm text-slate-500 max-w-sm mx-auto">
-              Create your first modular assessment or adjust your active search filters.
+              {canCreate
+                ? "Create your first modular assessment or adjust your active search filters."
+                : "No assessments have been published by academic departments or branch coordinators yet."}
             </p>
-            <Button variant="primary" size="sm" onClick={() => setCreateModalOpen(true)}>
-              Create Assessment
-            </Button>
+            {canCreate && (
+              <Button variant="primary" size="sm" onClick={() => setCreateModalOpen(true)}>
+                Create Assessment
+              </Button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -439,9 +476,16 @@ export function AssessmentListPage() {
                           <Globe2 className="w-3 h-3" /> Global
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-indigo-700 font-medium bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
-                          <Building className="w-3 h-3" /> College
-                        </span>
+                        <div className="space-y-1">
+                          <span className="inline-flex items-center gap-1 text-[11px] text-indigo-700 font-medium bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+                            <Building className="w-3 h-3" /> {a.departmentId ? "Department" : "College"}
+                          </span>
+                          {Array.isArray(a.branchIds) && a.branchIds.length > 0 && (
+                            <div className="text-[10px] text-slate-500 font-medium truncate max-w-[130px]" title={a.branchIds.join(", ")}>
+                              {a.branchIds.length === 1 ? `Branch: ${a.branchIds[0]}` : `${a.branchIds.length} Branches`}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </td>
 
@@ -569,6 +613,78 @@ export function AssessmentListPage() {
               />
             </div>
           </div>
+
+          {/* Branch Scoping / Selection */}
+          {isBranchAdmin ? (
+            <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 text-xs text-indigo-900 flex items-center justify-between">
+              <div>
+                <span className="font-bold block text-slate-800">Target Branch:</span>
+                <span className="text-slate-600">{user?.branchName || "My Branch"} {user?.branchCode ? `(${user.branchCode})` : ""}</span>
+              </div>
+              <Badge variant="primary" size="sm">Branch Bound</Badge>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-slate-700">
+                  Eligible Branches <span className="text-slate-400 font-normal">({selectedBranchIds.length === 0 ? "All Branches in Department" : `${selectedBranchIds.length} Selected`})</span>
+                </label>
+                {branchesList.length > 0 && (
+                  <div className="flex gap-2 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedBranchIds(branchesList.map(b => b.code || b.name || b._id))}
+                      className="text-indigo-600 hover:underline font-medium cursor-pointer"
+                    >
+                      Select All
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedBranchIds([])}
+                      className="text-slate-500 hover:underline font-medium cursor-pointer"
+                    >
+                      All Branches
+                    </button>
+                  </div>
+                )}
+              </div>
+              {branchesList.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                  {branchesList.map((br) => {
+                    const val = br.code || br.name || br._id;
+                    const isChecked = selectedBranchIds.includes(val);
+                    return (
+                      <label
+                        key={br._id || br.id || br.name}
+                        className={`flex items-center gap-2 p-2 rounded-lg text-xs cursor-pointer border transition-all ${
+                          isChecked
+                            ? "bg-indigo-50 border-indigo-300 text-indigo-900 font-medium"
+                            : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setSelectedBranchIds((prev) =>
+                              prev.includes(val) ? prev.filter((x) => x !== val) : [...prev, val]
+                            );
+                          }}
+                          className="w-3.5 h-3.5 text-indigo-600 rounded-sm"
+                        />
+                        <span className="truncate">{br.name} {br.code ? `(${br.code})` : ""}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  Applicable to all student branches across this department.
+                </p>
+              )}
+            </div>
+          )}
 
           {newAssessment.type === "PLACEMENT_ASSESSMENT" && (
             <div>
