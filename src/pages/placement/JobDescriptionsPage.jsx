@@ -540,7 +540,9 @@ export function JobDescriptionsPage() {
             {displayedJobs.length === 0 && !loading && (
               <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 text-xs">
                 {jobs.length === 0
-                  ? 'No recruitment drives published yet. Click "Add New Job Description" to create one.'
+                  ? (canManageJds
+                      ? 'No recruitment drives published yet. Click "Add New Job Description" to create one.'
+                      : 'No active recruitment drives published by the Central T&P Cell yet.')
                   : `No ${driveStatusFilter === "active" ? "active / running" : "closed / expired"} recruitment drives found.`}
               </div>
             )}
