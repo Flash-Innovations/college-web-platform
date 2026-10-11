@@ -76,7 +76,7 @@ export function BranchesPage() {
   const [branchToDelete, setBranchToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  const isCentralTpo = (user?.role === "placement" || window.location.pathname.startsWith("/placement")) &&
+  const isCentralTpo = (user?.role === "placement" || user?.role === "tpo" || window.location.pathname.startsWith("/placement") || window.location.pathname.startsWith("/tpo")) &&
     (!user?.departmentName || user?.departmentName?.toLowerCase().includes("placement") || user?.departmentName?.toLowerCase().includes("tpo") || user?.name?.toLowerCase().includes("placement") || user?.name?.toLowerCase().includes("tpo") || user?.backendRole === "COLLEGE_ADMIN");
 
   const [availableDepartments, setAvailableDepartments] = useState([]);

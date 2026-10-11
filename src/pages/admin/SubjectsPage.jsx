@@ -85,16 +85,16 @@ export function SubjectsPage() {
 
   const isInstitution =
     role === "university_admin" ||
-    role === "institution" ||
     role === "super_admin" ||
-    role === "admin" ||
+    location.pathname.startsWith("/college") ||
     location.pathname.startsWith("/institution");
   const isDepartment =
     role === "department_admin" ||
-    role === "department";
+    location.pathname.startsWith("/dept") ||
+    location.pathname.startsWith("/admin");
   const isBranch =
     role === "branch_admin" ||
-    role === "branch";
+    location.pathname.startsWith("/branch");
 
   // Main Page View Mode: "CURRICULUM" (College active curriculum) | "GLOBAL_CATALOG" (Browse & Adopt SIPS standard library)
   const [viewMode, setViewMode] = useState("CURRICULUM");
@@ -943,7 +943,14 @@ export function SubjectsPage() {
                         variant="primary"
                         size="xs"
                         icon={ArrowRight}
-                        onClick={() => navigate(`${location.pathname.startsWith("/institution") ? "/institution" : "/admin"}/questions?subjectId=${sub.id}`)}
+                        onClick={() => {
+                          const questionBasePath = (location.pathname.startsWith("/college") || location.pathname.startsWith("/institution"))
+                            ? (location.pathname.startsWith("/college") ? "/college" : "/institution")
+                            : location.pathname.startsWith("/branch")
+                            ? "/branch"
+                            : "/dept";
+                          navigate(`${questionBasePath}/questions?subjectId=${sub.id}`);
+                        }}
                         className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-xs flex items-center gap-1"
                       >
                         Questions

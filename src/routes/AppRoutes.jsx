@@ -64,10 +64,10 @@ export function AppRoutes() {
   // Root redirect helper based on authenticated role
   const getHomeRedirect = () => {
     if (!isAuthenticated) return <Navigate to="/login" replace />;
-    if (role === "university_admin") return <Navigate to="/institution/dashboard" replace />;
-    if (role === "placement") return <Navigate to="/placement/dashboard" replace />;
-    if (role === "admin" || role === "department_admin") return <Navigate to="/admin/dashboard" replace />;
-    if (role === "branch_admin") return <Navigate to="/placement/students" replace />;
+    if (role === "university_admin" || role === "super_admin") return <Navigate to="/college/dashboard" replace />;
+    if (role === "tpo" || role === "placement") return <Navigate to="/tpo/dashboard" replace />;
+    if (role === "branch_admin") return <Navigate to="/branch/dashboard" replace />;
+    if (role === "department_admin" || role === "admin") return <Navigate to="/dept/dashboard" replace />;
     return <Navigate to="/login" replace />;
   };
 
@@ -90,10 +90,23 @@ export function AppRoutes() {
         <Route path="/u/:username" element={<PublicStudentProfilePage />} />
 
         {/* ========================================================================= */}
-        {/* UNIVERSITY / MASTER COLLEGE ADMIN WORKSPACE                               */}
+        {/* 1. UNIVERSITY / COLLEGE MASTER ADMIN WORKSPACE (/college & /institution)  */}
         {/* ========================================================================= */}
-        <Route element={<ProtectedRoute allowedRoles={["university_admin", "admin"]} />}>
+        <Route element={<ProtectedRoute allowedRoles={["university_admin", "super_admin", "admin"]} />}>
           <Route element={<DashboardLayout />}>
+            <Route path="/college/dashboard" element={<InstitutionDashboard />} />
+            <Route path="/college/departments" element={<DepartmentsPage />} />
+            <Route path="/college/hierarchy" element={<DepartmentsPage />} />
+            <Route path="/college/profile" element={<UniversityProfilePage />} />
+            <Route path="/college/reports" element={<PlacementReportsPage />} />
+            <Route path="/college/analytics" element={<PlacementAnalyticsPage />} />
+            <Route path="/college/jobs" element={<JobDescriptionsPage />} />
+            <Route path="/college/job-descriptions" element={<JobDescriptionsPage />} />
+            <Route path="/college/subjects" element={<SubjectsPage />} />
+            <Route path="/college/questions" element={<QuestionListPage />} />
+            <Route path="/college/questions/:questionId" element={<QuestionDetailsPage />} />
+
+            {/* Backward-compatibility aliases for /institution */}
             <Route path="/institution/dashboard" element={<InstitutionDashboard />} />
             <Route path="/institution/departments" element={<DepartmentsPage />} />
             <Route path="/institution/hierarchy" element={<DepartmentsPage />} />
@@ -102,9 +115,6 @@ export function AppRoutes() {
             <Route path="/institution/analytics" element={<PlacementAnalyticsPage />} />
             <Route path="/institution/jobs" element={<JobDescriptionsPage />} />
             <Route path="/institution/job-descriptions" element={<JobDescriptionsPage />} />
-            <Route path="/institution/assessments" element={<AssessmentListPage />} />
-            <Route path="/institution/assessments/:assessmentId" element={<AssessmentBuilderPage />} />
-            <Route path="/institution/assessments/:assessmentId/results" element={<AssessmentResultsPage />} />
             <Route path="/institution/subjects" element={<SubjectsPage />} />
             <Route path="/institution/questions" element={<QuestionListPage />} />
             <Route path="/institution/questions/:questionId" element={<QuestionDetailsPage />} />
@@ -113,12 +123,20 @@ export function AppRoutes() {
         </Route>
 
         {/* ========================================================================= */}
-        {/* TRAINING & PLACEMENT CELL (TPO) WORKSPACE                                 */}
+        {/* 2. TRAINING & PLACEMENT CELL (TPO) WORKSPACE (/tpo & /placement)           */}
         {/* ========================================================================= */}
-        <Route element={<ProtectedRoute allowedRoles={["placement", "university_admin", "branch_admin", "department_admin", "admin"]} />}>
+        <Route element={<ProtectedRoute allowedRoles={["tpo", "placement", "super_admin", "admin"]} />}>
           <Route element={<DashboardLayout />}>
+            <Route path="/tpo/dashboard" element={<PlacementDashboard />} />
+            <Route path="/tpo/students" element={<StudentManagementPage />} />
+            <Route path="/tpo/jobs" element={<JobDescriptionsPage />} />
+            <Route path="/tpo/job-descriptions" element={<JobDescriptionsPage />} />
+            <Route path="/tpo/analytics" element={<PlacementAnalyticsPage />} />
+            <Route path="/tpo/reports" element={<PlacementReportsPage />} />
+            <Route path="/tpo/profile" element={<DepartmentProfilePage />} />
+
+            {/* Backward-compatibility aliases for /placement */}
             <Route path="/placement/dashboard" element={<PlacementDashboard />} />
-            <Route path="/placement/branches" element={<BranchesPage />} />
             <Route path="/placement/students" element={<StudentManagementPage />} />
             <Route path="/placement/jobs" element={<JobDescriptionsPage />} />
             <Route path="/placement/job-descriptions" element={<JobDescriptionsPage />} />
@@ -130,10 +148,29 @@ export function AppRoutes() {
         </Route>
 
         {/* ========================================================================= */}
-        {/* ACADEMIC DEPARTMENT & BRANCH WORKSPACE                                    */}
+        {/* 3. ACADEMIC DEPARTMENT WORKSPACE (/dept & /admin)                         */}
         {/* ========================================================================= */}
-        <Route element={<ProtectedRoute allowedRoles={["admin", "department_admin", "branch_admin", "placement", "university_admin"]} />}>
+        <Route element={<ProtectedRoute allowedRoles={["department_admin", "admin", "super_admin"]} />}>
           <Route element={<DashboardLayout />}>
+            <Route path="/dept/dashboard" element={<AdminDashboard />} />
+            <Route path="/dept/branches" element={<BranchesPage />} />
+            <Route path="/dept/departments" element={<BranchesPage />} />
+            <Route path="/dept/students" element={<StudentManagementPage />} />
+            <Route path="/dept/assessments" element={<AssessmentListPage />} />
+            <Route path="/dept/assessments/:assessmentId" element={<AssessmentBuilderPage />} />
+            <Route path="/dept/assessments/:assessmentId/results" element={<AssessmentResultsPage />} />
+            <Route path="/dept/subjects" element={<SubjectsPage />} />
+            <Route path="/dept/questions" element={<QuestionListPage />} />
+            <Route path="/dept/questions/:questionId" element={<QuestionDetailsPage />} />
+            <Route path="/dept/jobs" element={<JobDescriptionsPage />} />
+            <Route path="/dept/job-descriptions" element={<JobDescriptionsPage />} />
+            <Route path="/dept/users" element={<AdminUserManagementPage />} />
+            <Route path="/dept/analytics" element={<PlacementAnalyticsPage />} />
+            <Route path="/dept/reports" element={<PlacementReportsPage />} />
+            <Route path="/dept/settings" element={<AdminSettingsPage />} />
+            <Route path="/dept/profile" element={<DepartmentProfilePage />} />
+
+            {/* Backward-compatibility aliases for /admin */}
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/branches" element={<BranchesPage />} />
             <Route path="/admin/departments" element={<BranchesPage />} />
@@ -151,6 +188,26 @@ export function AppRoutes() {
             <Route path="/admin/settings" element={<AdminSettingsPage />} />
             <Route path="/admin/profile" element={<DepartmentProfilePage />} />
             <Route path="/admin/college-profile" element={<CollegeProfilePage />} />
+          </Route>
+        </Route>
+
+        {/* ========================================================================= */}
+        {/* 4. BRANCH COORDINATOR WORKSPACE (/branch)                                 */}
+        {/* ========================================================================= */}
+        <Route element={<ProtectedRoute allowedRoles={["branch_admin", "super_admin"]} />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/branch/dashboard" element={<AdminDashboard />} />
+            <Route path="/branch/students" element={<StudentManagementPage />} />
+            <Route path="/branch/jobs" element={<JobDescriptionsPage />} />
+            <Route path="/branch/job-descriptions" element={<JobDescriptionsPage />} />
+            <Route path="/branch/subjects" element={<SubjectsPage />} />
+            <Route path="/branch/assessments" element={<AssessmentListPage />} />
+            <Route path="/branch/assessments/:assessmentId" element={<AssessmentBuilderPage />} />
+            <Route path="/branch/assessments/:assessmentId/results" element={<AssessmentResultsPage />} />
+            <Route path="/branch/questions" element={<QuestionListPage />} />
+            <Route path="/branch/questions/:questionId" element={<QuestionDetailsPage />} />
+            <Route path="/branch/reports" element={<PlacementReportsPage />} />
+            <Route path="/branch/profile" element={<DepartmentProfilePage />} />
           </Route>
         </Route>
 

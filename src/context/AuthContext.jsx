@@ -18,7 +18,23 @@ export function AuthProvider({ children }) {
     return null;
   });
 
-  const [role, setRole] = useState(() => user?.role || null);
+  const [role, setRole] = useState(() => {
+    if (!user) return null;
+    if (user.role === "placement") {
+      const isTpo = Boolean(
+        user.departmentCode === "TPO" ||
+        user.username?.toLowerCase().endsWith("_tpo") ||
+        user.backendRole === "COLLEGE_ADMIN" ||
+        user.name?.toLowerCase().includes("placement") ||
+        user.name?.toLowerCase().includes("tpo") ||
+        user.departmentName?.toLowerCase().includes("placement") ||
+        user.departmentName?.toLowerCase().includes("tpo") ||
+        !user.departmentName
+      );
+      return isTpo ? "tpo" : "department_admin";
+    }
+    return user.role;
+  });
 
   useEffect(() => {
     if (user && localStorage.getItem("sips_token")) {
@@ -76,13 +92,22 @@ export function AuthProvider({ children }) {
         status: "Active"
       };
     } else if (data.role === "DEPARTMENT_ADMIN" || data.role === "COLLEGE_ADMIN") {
-      mappedRole = "placement";
+      const isTpo = Boolean(
+        data.role === "COLLEGE_ADMIN" ||
+        data.departmentCode === "TPO" ||
+        (data.username && data.username.toLowerCase().endsWith("_tpo")) ||
+        (data.departmentName && (data.departmentName.toLowerCase().includes("placement") || data.departmentName.toLowerCase().includes("tpo"))) ||
+        (data.name && (data.name.toLowerCase().includes("placement") || data.name.toLowerCase().includes("tpo")))
+      );
+      mappedRole = isTpo ? "tpo" : "department_admin";
       userData = {
         id: data.userId,
-        name: data.departmentName || data.name || (data.collegeName ? data.collegeName : "Program Placement Unit"),
+        name: isTpo
+          ? (data.name || data.departmentName || "Training & Placement Cell")
+          : (data.departmentName || data.name || (data.collegeName ? data.collegeName : "Academic Department")),
         email: identifier.includes("@") ? identifier : `${data.collegeSlug || data.username || "admin"}@college.edu`,
         username: data.username || identifier,
-        role: "placement",
+        role: mappedRole,
         backendRole: data.role,
         institutionId: data.institutionId,
         institutionName: data.institutionName,

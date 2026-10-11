@@ -44,8 +44,8 @@ export function StudentManagementPage() {
   const location = useLocation();
 
   // T&P / Placement role can inspect, create, import, and manage student rosters
-  const isPlacementRole = role === "placement" || location.pathname.startsWith("/placement");
-  const canModifyStudents = role === "admin" || role === "branch_admin" || role === "department_admin" || role === "university_admin" || role === "placement" || isPlacementRole;
+  const isPlacementRole = role === "tpo" || role === "placement" || location.pathname.startsWith("/tpo") || location.pathname.startsWith("/placement");
+  const canModifyStudents = role === "admin" || role === "branch_admin" || role === "department_admin" || role === "university_admin" || role === "placement" || role === "tpo" || isPlacementRole;
 
   const { showSuccess, showError, showWarning, showInfo } = useNotifications();
   const [students, setStudents] = useState([]);
@@ -96,11 +96,11 @@ export function StudentManagementPage() {
   const [deletingStudent, setDeletingStudent] = useState(false);
 
   // Role definitions and auto-filled program & branch locks
-  const isCentralTpo = (role === "placement" || location.pathname.startsWith("/placement")) &&
+  const isCentralTpo = (role === "tpo" || role === "placement" || location.pathname.startsWith("/tpo") || location.pathname.startsWith("/placement")) &&
     (!user?.departmentName || user?.departmentName?.toLowerCase().includes("placement") || user?.departmentName?.toLowerCase().includes("tpo") || user?.name?.toLowerCase().includes("placement") || user?.name?.toLowerCase().includes("tpo") || user?.backendRole === "COLLEGE_ADMIN");
 
-  const isBranchCoord = role === "branch_admin" || Boolean(user?.branchName);
-  const isDeptAdmin = !isCentralTpo && (role === "department_admin" || (role === "placement" && Boolean(user?.departmentName)));
+  const isBranchCoord = role === "branch_admin" || location.pathname.startsWith("/branch") || Boolean(user?.branchName);
+  const isDeptAdmin = !isCentralTpo && (role === "department_admin" || location.pathname.startsWith("/dept") || (role === "placement" && Boolean(user?.departmentName)));
 
   const lockedProgram = !isCentralTpo ? (user?.departmentName || (user?.name && !isBranchCoord ? user.name.replace(/\s*Dept\s*$/i, "") : "") || "Bachelors of Technology") : "";
   const lockedBranch = !isCentralTpo ? (user?.branchName || (isBranchCoord ? (user?.name || "Computer Science & Engineering") : "Computer Science & Engineering")) : "";

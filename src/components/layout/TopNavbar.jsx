@@ -182,11 +182,11 @@ export function TopNavbar({ onMenuClick }) {
               </div>
 
               <div className="py-1">
-                {role === "university_admin" && (
+                {(role === "university_admin" || role === "super_admin") && (
                   <>
                     <button
                       onClick={() => {
-                        navigate("/institution/dashboard");
+                        navigate("/college/dashboard");
                         setProfileOpen(false);
                       }}
                       className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-semibold text-indigo-600"
@@ -196,7 +196,7 @@ export function TopNavbar({ onMenuClick }) {
                     </button>
                     <button
                       onClick={() => {
-                        navigate("/institution/profile");
+                        navigate("/college/profile");
                         setProfileOpen(false);
                       }}
                       className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-semibold text-slate-700"
@@ -206,7 +206,7 @@ export function TopNavbar({ onMenuClick }) {
                     </button>
                     <button
                       onClick={() => {
-                        navigate("/institution/departments");
+                        navigate("/college/departments");
                         setProfileOpen(false);
                       }}
                       className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-semibold text-slate-700"
@@ -228,21 +228,21 @@ export function TopNavbar({ onMenuClick }) {
                     My Profile
                   </button>
                 )}
-                {role === "placement" && (
+                {(role === "placement" || role === "tpo") && (
                   <>
                     <button
                       onClick={() => {
-                        navigate("/placement/profile");
+                        navigate("/tpo/profile");
                         setProfileOpen(false);
                       }}
                       className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-semibold text-indigo-600"
                     >
                       <Building2 className="w-4 h-4 text-indigo-600" />
-                      College Profile
+                      T&P Profile
                     </button>
                     <button
                       onClick={() => {
-                        navigate("/placement/analytics");
+                        navigate("/tpo/analytics");
                         setProfileOpen(false);
                       }}
                       className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer"
@@ -252,27 +252,41 @@ export function TopNavbar({ onMenuClick }) {
                     </button>
                   </>
                 )}
-                {role === "admin" && (
+                {(role === "department_admin" || role === "admin") && (
                   <>
                     <button
                       onClick={() => {
-                        navigate("/admin/profile");
+                        navigate("/dept/profile");
                         setProfileOpen(false);
                       }}
                       className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-semibold text-indigo-600"
                     >
                       <Building2 className="w-4 h-4 text-indigo-600" />
-                      College Profile
+                      Program Profile
                     </button>
                     <button
                       onClick={() => {
-                        navigate("/admin/settings");
+                        navigate("/dept/dashboard");
                         setProfileOpen(false);
                       }}
                       className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer"
                     >
-                      <Shield className="w-4 h-4 text-slate-400" />
-                      Platform Settings
+                      <LayoutDashboard className="w-4 h-4 text-slate-400" />
+                      Program Overview
+                    </button>
+                  </>
+                )}
+                {role === "branch_admin" && (
+                  <>
+                    <button
+                      onClick={() => {
+                        navigate("/branch/profile");
+                        setProfileOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer font-semibold text-indigo-600"
+                    >
+                      <Building2 className="w-4 h-4 text-indigo-600" />
+                      Branch Profile
                     </button>
                   </>
                 )}

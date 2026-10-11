@@ -65,82 +65,79 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
     : deptOrProgramName || user?.name || "Department Admin";
 
   const universityAdminLinks = [
-    { to: "/institution/dashboard", label: "College Overview", icon: LayoutDashboard },
-    { to: "/institution/departments", label: "Programs & Branches", icon: Building2, badge: "Units" },
-    { to: "/institution/jobs", label: "Job Drives & Openings", icon: Briefcase, badge: "Drives" },
-    { to: "/institution/subjects", label: "Curriculum & Subjects", icon: GraduationCap },
-    { to: "/institution/questions", label: "Question Bank", icon: BookOpen },
-    { to: "/institution/analytics", label: "Institutional Analytics", icon: BarChart3 },
-    { to: "/institution/reports", label: "Accreditation & NIRF Reports", icon: FileSpreadsheet, badge: "Export" },
-    { to: "/institution/profile", label: "College Profile", icon: Settings }
+    { to: "/college/dashboard", label: "College Overview", icon: LayoutDashboard },
+    { to: "/college/departments", label: "Programs & Branches", icon: Building2, badge: "Units" },
+    { to: "/college/jobs", label: "Job Drives & Openings", icon: Briefcase, badge: "Drives" },
+    { to: "/college/subjects", label: "Curriculum & Subjects", icon: GraduationCap },
+    { to: "/college/questions", label: "Question Bank", icon: BookOpen },
+    { to: "/college/analytics", label: "Institutional Analytics", icon: BarChart3 },
+    { to: "/college/reports", label: "Accreditation & NIRF Reports", icon: FileSpreadsheet, badge: "Export" },
+    { to: "/college/profile", label: "College Profile", icon: Settings }
   ];
 
-  const placementLinks = [
+  const tpoLinks = [
     {
-      to: "/placement/dashboard",
-      label: isDeptOrProgram ? "Program Overview" : "T&P Overview",
+      to: "/tpo/dashboard",
+      label: "T&P Overview",
       icon: LayoutDashboard
     },
     {
-      to: "/placement/students",
-      label: isDeptOrProgram ? "Student Directory" : "Universal Student Directory",
+      to: "/tpo/students",
+      label: "Universal Student Directory",
       icon: Users
     },
     {
-      to: "/placement/jobs",
+      to: "/tpo/jobs",
       label: "Job Drives & Openings",
       icon: Briefcase,
       badge: "Drives"
     },
-    ...(isDeptOrProgram
-      ? []
-      : [
-          {
-            to: "/placement/analytics",
-            label: "Placement Analytics",
-            icon: BarChart3
-          }
-        ]),
     {
-      to: "/placement/reports",
-      label: isDeptOrProgram ? "Accreditation & Placement Reports" : "NBA / NIRF Reports",
+      to: "/tpo/analytics",
+      label: "Placement Analytics",
+      icon: BarChart3
+    },
+    {
+      to: "/tpo/reports",
+      label: "NBA / NIRF Reports",
       icon: FileSpreadsheet,
       badge: "Export"
     },
     {
-      to: "/placement/profile",
-      label: isDeptOrProgram ? "Program Profile" : "T&P Cell Profile",
+      to: "/tpo/profile",
+      label: "T&P Cell Profile",
       icon: Building2
     }
   ];
 
   const departmentAdminLinks = [
-    { to: "/admin/dashboard", label: "Program Overview", icon: LayoutDashboard },
-    { to: "/admin/branches", label: "Branch Management", icon: Building2, badge: "Branches" },
-    { to: "/admin/students", label: "Program Students", icon: Users },
-    { to: "/admin/jobs", label: "Job Drives & Openings", icon: Briefcase, badge: "Drives" },
-    { to: "/admin/subjects", label: "Curriculum & Subjects", icon: GraduationCap },
-    { to: "/admin/assessments", label: "Assessments", icon: Layers },
-    { to: "/admin/questions", label: "Question Bank", icon: BookOpen },
-    { to: "/admin/profile", label: "Program Profile", icon: Settings }
+    { to: "/dept/dashboard", label: "Program Overview", icon: LayoutDashboard },
+    { to: "/dept/branches", label: "Branch Management", icon: Building2, badge: "Branches" },
+    { to: "/dept/students", label: "Program Students", icon: Users },
+    { to: "/dept/jobs", label: "Job Drives & Openings", icon: Briefcase, badge: "Drives" },
+    { to: "/dept/subjects", label: "Curriculum & Subjects", icon: GraduationCap },
+    { to: "/dept/assessments", label: "Assessments", icon: Layers },
+    { to: "/dept/questions", label: "Question Bank", icon: BookOpen },
+    { to: "/dept/reports", label: "Accreditation & Reports", icon: FileSpreadsheet, badge: "Export" },
+    { to: "/dept/profile", label: "Program Profile", icon: Settings }
   ];
 
   const branchAdminLinks = [
-    { to: "/placement/dashboard", label: "Placement Overview", icon: LayoutDashboard },
-    { to: "/admin/students", label: "Branch Students (CRUD)", icon: Users, badge: "Manage" },
-    { to: "/placement/jobs", label: "Job Drives & Openings", icon: Briefcase, badge: "Drives" },
-    { to: "/admin/subjects", label: "Curriculum & Subjects", icon: GraduationCap },
-    { to: "/admin/assessments", label: "Assessments", icon: Layers },
-    { to: "/admin/questions", label: "Question Bank", icon: BookOpen },
-    { to: "/placement/reports", label: "Accreditation & Placement Reports", icon: FileSpreadsheet, badge: "Export" },
-    { to: "/admin/profile", label: "Branch Profile", icon: Settings }
+    { to: "/branch/dashboard", label: "Branch Overview", icon: LayoutDashboard },
+    { to: "/branch/students", label: "Branch Students (CRUD)", icon: Users, badge: "Manage" },
+    { to: "/branch/jobs", label: "Job Drives & Openings", icon: Briefcase, badge: "Drives" },
+    { to: "/branch/subjects", label: "Curriculum & Subjects", icon: GraduationCap },
+    { to: "/branch/assessments", label: "Assessments", icon: Layers },
+    { to: "/branch/questions", label: "Question Bank", icon: BookOpen },
+    { to: "/branch/reports", label: "Accreditation & Reports", icon: FileSpreadsheet, badge: "Export" },
+    { to: "/branch/profile", label: "Branch Profile", icon: Settings }
   ];
 
   const links =
-    role === "university_admin"
+    role === "university_admin" || role === "super_admin"
       ? universityAdminLinks
-      : role === "placement"
-      ? placementLinks
+      : role === "tpo" || role === "placement" || isTpo
+      ? tpoLinks
       : role === "branch_admin"
       ? branchAdminLinks
       : departmentAdminLinks;

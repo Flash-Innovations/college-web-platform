@@ -109,14 +109,14 @@ export function LoginPage({ initialRegisterMode = false }) {
 
       showSuccess(`Welcome back, ${result.user?.name || trimmedUser}!`);
 
-      if (result.role === "university_admin") {
-        navigate("/institution/dashboard");
-      } else if (result.role === "placement") {
-        navigate("/placement/dashboard");
+      if (result.role === "university_admin" || result.role === "super_admin") {
+        navigate("/college/dashboard");
+      } else if (result.role === "tpo" || result.role === "placement") {
+        navigate("/tpo/dashboard");
       } else if (result.role === "branch_admin") {
-        navigate("/admin/students");
+        navigate("/branch/dashboard");
       } else {
-        navigate("/admin/dashboard");
+        navigate("/dept/dashboard");
       }
     } catch (err) {
       const msg = err.message || "Invalid institution credentials.";
@@ -137,7 +137,7 @@ export function LoginPage({ initialRegisterMode = false }) {
       showError("New password must be at least 6 characters long.");
       return;
     }
-    if (resetNewPassword !== resetConfirmPassword) {
+    if (!resetNewPassword || resetNewPassword !== resetConfirmPassword) {
       showError("New passwords do not match.");
       return;
     }
@@ -147,7 +147,15 @@ export function LoginPage({ initialRegisterMode = false }) {
       await changePassword(resetOldPassword, resetNewPassword);
       showSuccess("Password updated successfully! Welcome to your institutional console.");
       setPasswordResetModalOpen(false);
-      navigate("/institution/dashboard");
+      if (role === "university_admin" || role === "super_admin") {
+        navigate("/college/dashboard");
+      } else if (role === "tpo" || role === "placement") {
+        navigate("/tpo/dashboard");
+      } else if (role === "branch_admin") {
+        navigate("/branch/dashboard");
+      } else {
+        navigate("/dept/dashboard");
+      }
     } catch (err) {
       showError(err.message || "Failed to update password. Please try again.");
     } finally {

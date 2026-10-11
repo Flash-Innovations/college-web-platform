@@ -31,33 +31,33 @@ import { ProgressBar } from "../../components/common/ProgressBar";
 import Avatar from "../../components/common/Avatar";
 import { useNotifications } from "../../context/NotificationContext";
 import { useAuth } from "../../context/AuthContext";
+import { useLocation } from "react-router-dom";
 
 export function JobDescriptionsPage() {
   const { user, role } = useAuth();
+  const location = useLocation();
   const { showSuccess, showError, showWarning, showInfo } = useNotifications();
 
   // Role permissions: Only Central TPO has permission to create and delete JDs.
-  // Academic Departments, Branches, and College/University Admins can inspect drives, matches, and applicant records in read-only mode.
-  const isBranchAdmin = role === "branch_admin" || user?.backendRole === "BRANCH_ADMIN";
-  const isUniversityAdmin = role === "university_admin" || user?.backendRole === "MAIN_UNIVERSITY_ADMIN";
+  // In /tpo workspace (or central placement role), creation and deletion are enabled.
+  // In /college, /dept, or /branch workspaces, drives are in view-only mode.
+  const isReadOnlyWorkspace =
+    location.pathname.startsWith("/college") ||
+    location.pathname.startsWith("/institution") ||
+    location.pathname.startsWith("/dept") ||
+    location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/branch") ||
+    role === "branch_admin" ||
+    role === "department_admin";
 
-  // Central TPO: can be COLLEGE_ADMIN or a dedicated T&P Department account (name contains "placement" / "tpo", code "TPO", username "*_tpo", or placement role)
-  const isCentralTpo =
-    !isBranchAdmin &&
-    !isUniversityAdmin &&
-    Boolean(
-      user?.departmentCode === "TPO" ||
-      user?.username?.endsWith("_tpo") ||
-      user?.backendRole === "COLLEGE_ADMIN" ||
-      user?.name?.toLowerCase().includes("placement") ||
-      user?.name?.toLowerCase().includes("tpo") ||
-      user?.departmentName?.toLowerCase().includes("placement") ||
-      user?.departmentName?.toLowerCase().includes("tpo") ||
-      (role === "placement" && !user?.departmentName && !user?.backendRole?.includes("DEPARTMENT")) ||
-      role === "super_admin"
-    );
+  const isTpoWorkspace =
+    location.pathname.startsWith("/tpo") ||
+    location.pathname.startsWith("/placement") ||
+    role === "tpo" ||
+    role === "placement" ||
+    role === "super_admin";
 
-  const canManageJds = Boolean(isCentralTpo);
+  const canManageJds = !isReadOnlyWorkspace && isTpoWorkspace;
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState(null);

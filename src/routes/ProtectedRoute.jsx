@@ -11,19 +11,19 @@ export function ProtectedRoute({ allowedRoles = [] }) {
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
     // Redirect to the user's primary dashboard if attempting to access another role's routes
-    if (role === "super_admin") {
-      return <Navigate to="/super-admin/dashboard" replace />;
+    if (role === "super_admin" || role === "university_admin") {
+      return <Navigate to="/college/dashboard" replace />;
     }
-    if (role === "university_admin") {
-      return <Navigate to="/institution/dashboard" replace />;
+    if (role === "tpo" || role === "placement") {
+      return <Navigate to="/tpo/dashboard" replace />;
     }
-    if (role === "placement") {
-      return <Navigate to="/placement/dashboard" replace />;
+    if (role === "branch_admin") {
+      return <Navigate to="/branch/dashboard" replace />;
     }
-    if (role === "admin") {
-      return <Navigate to="/admin/dashboard" replace />;
+    if (role === "department_admin" || role === "admin") {
+      return <Navigate to="/dept/dashboard" replace />;
     }
-    return <Navigate to="/student/dashboard" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <Outlet />;
