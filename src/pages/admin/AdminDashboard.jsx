@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
   Building2,
   Users,
@@ -28,7 +28,22 @@ import { DashboardSkeleton } from "../../components/common/LoadingSkeleton";
 
 export function AdminDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const location = useLocation();
+  const { user, role } = useAuth();
+
+  const isBranch = location.pathname.startsWith("/branch") || role === "branch_admin";
+  const isDept = location.pathname.startsWith("/dept") || role === "department_admin";
+  const isCollege = location.pathname.startsWith("/college") || location.pathname.startsWith("/institution") || role === "university_admin";
+
+  const basePath = isBranch
+    ? "/branch"
+    : isDept
+    ? "/dept"
+    : isCollege
+    ? "/college"
+    : location.pathname.startsWith("/admin")
+    ? "/admin"
+    : "/branch";
 
   const [branches, setBranches] = useState([]);
   const [departmentInfo, setDepartmentInfo] = useState(null);
@@ -94,7 +109,7 @@ export function AdminDashboard() {
             variant="outline"
             size="sm"
             icon={Layers}
-            onClick={() => navigate("/admin/assessments")}
+            onClick={() => navigate(`${basePath}/assessments`)}
           >
             Assessments
           </Button>
@@ -102,7 +117,7 @@ export function AdminDashboard() {
             variant="primary"
             size="sm"
             icon={Plus}
-            onClick={() => navigate("/admin/branches?action=new")}
+            onClick={() => navigate(`${basePath}/branches?action=new`)}
           >
             Add Child Branch
           </Button>
@@ -162,7 +177,7 @@ export function AdminDashboard() {
           subtitle="Autonomous branch coordinator units under this program"
           action={
             <Link
-              to="/admin/branches"
+              to={`${basePath}/branches`}
               className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
             >
               Manage All Branches ({branches.length}) <ArrowRight className="w-3.5 h-3.5" />
@@ -182,7 +197,7 @@ export function AdminDashboard() {
             <Button
               size="sm"
               icon={Plus}
-              onClick={() => navigate("/admin/branches?action=new")}
+              onClick={() => navigate(`${basePath}/branches?action=new`)}
             >
               Create First Branch Now
             </Button>
@@ -269,7 +284,7 @@ export function AdminDashboard() {
 
                       <td className="py-3.5 px-4 text-right">
                         <Link
-                          to="/admin/branches"
+                          to={`${basePath}/branches`}
                           className="font-bold text-indigo-600 hover:text-indigo-800"
                         >
                           Manage
@@ -287,7 +302,7 @@ export function AdminDashboard() {
       {/* Program Academic Capabilities Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div
-          onClick={() => navigate("/admin/branches")}
+          onClick={() => navigate(`${basePath}/branches`)}
           className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer group"
         >
           <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
@@ -297,13 +312,20 @@ export function AdminDashboard() {
           <p className="text-xs text-slate-500 mt-1">
             Provision and reset branch coordinator credentials, activate coding arena access, and manage branch sections.
           </p>
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 mt-3 group-hover:gap-1.5 transition-all">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`${basePath}/branches`);
+            }}
+            className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 mt-3 group-hover:gap-1.5 transition-all cursor-pointer focus:outline-none focus:underline"
+          >
             Open Branches <ArrowRight className="w-3.5 h-3.5" />
-          </span>
+          </button>
         </div>
 
         <div
-          onClick={() => navigate("/admin/students")}
+          onClick={() => navigate(`${basePath}/students`)}
           className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer group"
         >
           <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
@@ -313,13 +335,20 @@ export function AdminDashboard() {
           <p className="text-xs text-slate-500 mt-1">
             Inspect all students uploaded by your child branches, track interview scores, and verify skill readiness.
           </p>
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 mt-3 group-hover:gap-1.5 transition-all">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`${basePath}/students`);
+            }}
+            className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 mt-3 group-hover:gap-1.5 transition-all cursor-pointer focus:outline-none focus:underline"
+          >
             View Students <ArrowRight className="w-3.5 h-3.5" />
-          </span>
+          </button>
         </div>
 
         <div
-          onClick={() => navigate("/admin/assessments")}
+          onClick={() => navigate(`${basePath}/assessments`)}
           className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer group"
         >
           <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-3 group-hover:bg-purple-600 group-hover:text-white transition-colors">
@@ -329,9 +358,16 @@ export function AdminDashboard() {
           <p className="text-xs text-slate-500 mt-1">
             Author program-level test assessments, browse coding challenges, and schedule diagnostic evaluations.
           </p>
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-600 mt-3 group-hover:gap-1.5 transition-all">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`${basePath}/assessments`);
+            }}
+            className="inline-flex items-center gap-1 text-xs font-bold text-purple-600 mt-3 group-hover:gap-1.5 transition-all cursor-pointer focus:outline-none focus:underline"
+          >
             Build Tests <ArrowRight className="w-3.5 h-3.5" />
-          </span>
+          </button>
         </div>
       </div>
     </div>

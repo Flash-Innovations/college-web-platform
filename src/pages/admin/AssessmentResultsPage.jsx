@@ -35,7 +35,7 @@ export function AssessmentResultsPage() {
   const { assessmentId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const basePath = location.pathname.startsWith("/placement") ? "/placement" : location.pathname.startsWith("/institution") ? "/institution" : "/admin";
+  const basePath = location.pathname.startsWith("/placement") ? "/placement" : location.pathname.startsWith("/institution") ? "/institution" : location.pathname.startsWith("/tpo") ? "/tpo" : location.pathname.startsWith("/branch") ? "/branch" : location.pathname.startsWith("/dept") ? "/dept" : "/admin";
   const { addToast } = useNotifications();
 
   const [loading, setLoading] = useState(true);
