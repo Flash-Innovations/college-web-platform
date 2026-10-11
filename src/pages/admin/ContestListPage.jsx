@@ -173,7 +173,7 @@ export function ContestListPage() {
     setCreateLoading(true);
     try {
       const resolvedBranches = isBranchAdmin
-        ? [user?.branchId || user?.branchCode || user?.branchName].filter(Boolean)
+        ? [...new Set([user?.branchId, user?.branchCode, user?.branchName, user?.branch].filter(Boolean))]
         : selectedBranchIds;
 
       const payload = {
@@ -496,7 +496,12 @@ export function ContestListPage() {
                     {Array.isArray(c.branchIds) && c.branchIds.length > 0 ? (
                       <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-md">
                         <Building className="w-3 h-3 text-indigo-500" />
-                        {c.branchIds.length === 1 ? `Branch: ${c.branchIds[0]}` : `${c.branchIds.length} Branches`}
+                        {(() => {
+                          const readable = c.branchIds.find(b => b && b.length !== 24) || c.branchIds[0];
+                          return c.branchIds.length === 1 || (c.branchIds.length <= 4 && isBranchAdmin)
+                            ? `Branch: ${readable}`
+                            : `${c.branchIds.length} Branches`;
+                        })()}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
