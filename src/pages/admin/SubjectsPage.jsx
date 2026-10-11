@@ -66,25 +66,35 @@ const ICON_MAP = {
 };
 
 const COLOR_MAP = {
-  indigo: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800",
-  sky: "bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-800",
-  emerald: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
-  amber: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800",
-  purple: "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800",
-  rose: "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800",
-  violet: "bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800",
-  teal: "bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-800",
-  blue: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+  indigo: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  sky: "bg-sky-50 text-sky-700 border-sky-200",
+  emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  amber: "bg-amber-50 text-amber-800 border-amber-200",
+  purple: "bg-purple-50 text-purple-700 border-purple-200",
+  rose: "bg-rose-50 text-rose-700 border-rose-200",
+  violet: "bg-violet-50 text-violet-700 border-violet-200",
+  teal: "bg-teal-50 text-teal-700 border-teal-200",
+  blue: "bg-blue-50 text-blue-700 border-blue-200"
 };
 
 export function SubjectsPage() {
   const { addToast } = useNotifications();
   const { user, role } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const isInstitution = role === "institution" || role === "super_admin" || role === "admin";
-  const isDepartment = role === "department";
-  const isBranch = role === "branch";
+  const isInstitution =
+    role === "university_admin" ||
+    role === "institution" ||
+    role === "super_admin" ||
+    role === "admin" ||
+    location.pathname.startsWith("/institution");
+  const isDepartment =
+    role === "department_admin" ||
+    role === "department";
+  const isBranch =
+    role === "branch_admin" ||
+    role === "branch";
 
   // Main Page View Mode: "CURRICULUM" (College active curriculum) | "GLOBAL_CATALOG" (Browse & Adopt SIPS standard library)
   const [viewMode, setViewMode] = useState("CURRICULUM");
@@ -492,23 +502,25 @@ export function SubjectsPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Top Banner Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400 border border-indigo-200/70 dark:border-indigo-800">
-              <School className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-2 mb-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <School className="w-3.5 h-3.5 text-indigo-600" />
               {isInstitution ? "University Master Curriculum" : isDepartment ? "Department Curriculum Portal" : "Branch Curriculum & Questions"}
             </span>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
               Prisma Multi-Tenant Verified
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
-            <BookOpen className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
-            Curriculum, Subjects & Syllabus Modules
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 shadow-2xs">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <span>Curriculum, Subjects & Syllabus Modules</span>
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-3xl">
+          <p className="text-sm font-medium text-slate-600 mt-1.5 max-w-3xl leading-relaxed">
             {isInstitution
               ? "Govern university-wide academic curriculum, adopt standard global question repositories, and allocate subjects across engineering and management departments."
               : isDepartment
@@ -517,15 +529,15 @@ export function SubjectsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
           {/* View Mode Toggle */}
-          <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200">
             <button
               onClick={() => setViewMode("CURRICULUM")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 viewMode === "CURRICULUM"
-                  ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                  ? "bg-white text-indigo-700 shadow-xs border border-slate-200/60"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               <Building2 className="w-3.5 h-3.5" />
@@ -533,10 +545,10 @@ export function SubjectsPage() {
             </button>
             <button
               onClick={() => setViewMode("GLOBAL_CATALOG")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 viewMode === "GLOBAL_CATALOG"
-                  ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                  ? "bg-white text-indigo-700 shadow-xs border border-slate-200/60"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               <Globe className="w-3.5 h-3.5" />
@@ -560,7 +572,7 @@ export function SubjectsPage() {
               size="sm"
               icon={Plus}
               onClick={openCreateModal}
-              className="shadow-sm"
+              className="font-bold shadow-xs"
             >
               Create Custom Subject
             </Button>
@@ -570,16 +582,16 @@ export function SubjectsPage() {
 
       {/* Global Catalog Banner (When in Global Catalog mode) */}
       {viewMode === "GLOBAL_CATALOG" && (
-        <Card className="p-5 border-indigo-200 dark:border-indigo-900/50 bg-gradient-to-r from-indigo-50/70 via-white to-sky-50/60 dark:from-indigo-950/20 dark:via-slate-900 dark:to-sky-950/20 shadow-2xs">
+        <Card className="p-5 border-indigo-200 bg-gradient-to-r from-indigo-50/70 via-white to-sky-50/60 shadow-2xs">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Globe className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                <Globe className="w-5 h-5 text-indigo-600" />
+                <h2 className="text-base font-bold text-slate-900">
                   SIPS Master Global Question & Subject Repository
                 </h2>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
+              <p className="text-xs text-slate-600">
                 Pre-vetted, industry-standard subjects and 2,000+ evaluated questions across Aptitude, Computer Science Core, and Business Management. Pick and adopt any standard subject to immediately activate it for your college departments.
               </p>
             </div>
@@ -590,73 +602,73 @@ export function SubjectsPage() {
       {/* Curriculum Analytics Summary KPI Ribbon */}
       {viewMode === "CURRICULUM" && (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3.5">
-          <Card className="p-3.5 border-slate-200/80 bg-white shadow-2xs hover:shadow-xs transition-all">
+          <Card className="p-4 border-slate-200/80 bg-white shadow-2xs hover:shadow-xs transition-all">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Subjects</span>
-              <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                <BookOpen className="w-3.5 h-3.5" />
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                <BookOpen className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-xl font-black text-slate-900 mt-1">{subjects.length}</div>
-            <div className="text-[10px] text-slate-400 mt-0.5">Active curriculum courses</div>
+            <div className="text-2xl font-black text-slate-900 mt-2">{subjects.length}</div>
+            <div className="text-[11px] font-medium text-slate-500 mt-0.5">Active curriculum courses</div>
           </Card>
 
-          <Card className="p-3.5 border-slate-200/80 bg-white shadow-2xs hover:shadow-xs transition-all">
+          <Card className="p-4 border-slate-200/80 bg-white shadow-2xs hover:shadow-xs transition-all">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Universal (All)</span>
-              <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-                <CheckCircle2 className="w-3.5 h-3.5" />
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                <CheckCircle2 className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-xl font-black text-emerald-700 mt-1">
+            <div className="text-2xl font-black text-emerald-700 mt-2">
               {subjects.filter((s) => s.isApplicableToAll).length}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">Campus-wide enrollment</div>
+            <div className="text-[11px] font-medium text-slate-500 mt-0.5">Campus-wide enrollment</div>
           </Card>
 
-          <Card className="p-3.5 border-slate-200/80 bg-white shadow-2xs hover:shadow-xs transition-all">
+          <Card className="p-4 border-slate-200/80 bg-white shadow-2xs hover:shadow-xs transition-all">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tech & Coding</span>
-              <div className="w-7 h-7 rounded-lg bg-sky-50 flex items-center justify-center text-sky-600">
-                <Code2 className="w-3.5 h-3.5" />
+              <div className="w-8 h-8 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
+                <Code2 className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-xl font-black text-sky-700 mt-1">
+            <div className="text-2xl font-black text-sky-700 mt-2">
               {subjects.filter((s) => s.type === "TECHNICAL" || s.type === "CODING").length}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">Engineering curriculum</div>
+            <div className="text-[11px] font-medium text-slate-500 mt-0.5">Engineering curriculum</div>
           </Card>
 
-          <Card className="p-3.5 border-slate-200/80 bg-white shadow-2xs hover:shadow-xs transition-all">
+          <Card className="p-4 border-slate-200/80 bg-white shadow-2xs hover:shadow-xs transition-all">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Aptitude & Mgmt</span>
-              <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">
-                <Calculator className="w-3.5 h-3.5" />
+              <div className="w-8 h-8 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
+                <Calculator className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-xl font-black text-purple-700 mt-1">
+            <div className="text-2xl font-black text-purple-700 mt-2">
               {subjects.filter((s) => s.type === "APTITUDE" || s.type === "NON_TECHNICAL").length}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">Aptitude & business modules</div>
+            <div className="text-[11px] font-medium text-slate-500 mt-0.5">Aptitude & business modules</div>
           </Card>
 
-          <Card className="p-3.5 border-slate-200/80 bg-white shadow-2xs hover:shadow-xs transition-all col-span-2 sm:col-span-4 lg:col-span-1">
+          <Card className="p-4 border-slate-200/80 bg-white shadow-2xs hover:shadow-xs transition-all col-span-2 sm:col-span-4 lg:col-span-1">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Modules</span>
-              <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
-                <Layers className="w-3.5 h-3.5" />
+              <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                <Layers className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-xl font-black text-amber-700 mt-1">
+            <div className="text-2xl font-black text-amber-700 mt-2">
               {subjects.reduce((acc, s) => acc + (Array.isArray(s.topics) ? s.topics.length : 0), 0)}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5">Syllabus topics tracked</div>
+            <div className="text-[11px] font-medium text-slate-500 mt-0.5">Syllabus topics tracked</div>
           </Card>
         </div>
       )}
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
         {/* Stream Filter Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
           {[
@@ -671,10 +683,10 @@ export function SubjectsPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   isActive
                     ? "bg-indigo-600 text-white shadow-xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                    : "bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200 hover:bg-slate-100"
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -690,7 +702,7 @@ export function SubjectsPage() {
             <select
               value={departmentFilter}
               onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+              className="text-xs font-semibold px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-indigo-500 cursor-pointer"
             >
               <option value="ALL">All Departments</option>
               {departmentsList.map((d) => (
@@ -708,7 +720,7 @@ export function SubjectsPage() {
               placeholder={viewMode === "CURRICULUM" ? "Search subjects or codes..." : "Search global repository..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 w-48 sm:w-64"
+              className="pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 w-48 sm:w-64"
             />
           </div>
         </div>
@@ -720,20 +732,20 @@ export function SubjectsPage() {
         loading ? (
           <CardGridSkeleton count={6} />
         ) : error ? (
-          <Card className="p-6 border-rose-200 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/30 text-center space-y-3">
-            <AlertCircle className="w-8 h-8 text-rose-600 dark:text-rose-400 mx-auto" />
-            <h3 className="font-bold text-slate-900 dark:text-white text-sm">Failed to Load Subjects</h3>
-            <p className="text-xs text-rose-700 dark:text-rose-300">{error}</p>
+          <Card className="p-6 border-rose-200 bg-rose-50/50 text-center space-y-3">
+            <AlertCircle className="w-8 h-8 text-rose-600 mx-auto" />
+            <h3 className="font-bold text-slate-900 text-sm">Failed to Load Subjects</h3>
+            <p className="text-xs text-rose-700">{error}</p>
             <Button variant="outline" size="sm" onClick={fetchSubjects}>
               Try Again
             </Button>
           </Card>
         ) : subjects.length === 0 ? (
-          <Card className="p-12 text-center space-y-4 border-dashed border-2 border-slate-200 dark:border-slate-800">
-            <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto" />
+          <Card className="p-12 text-center space-y-4 border-dashed border-2 border-slate-200">
+            <BookOpen className="w-12 h-12 text-slate-300 mx-auto" />
             <div>
-              <h3 className="font-bold text-slate-900 dark:text-white text-base">No Curriculum Subjects Found</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
+              <h3 className="font-bold text-slate-900 text-base">No Curriculum Subjects Found</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
                 {search ? "No subjects match your search filter." : "You haven't added or adopted any subjects yet. Create a custom subject or pick from the Global Catalog."}
               </p>
             </div>
@@ -759,37 +771,42 @@ export function SubjectsPage() {
               const branchTags = Array.isArray(sub.branchIds) ? sub.branchIds : [];
 
               return (
-                <Card
+                <div
                   key={sub.id}
-                  className="p-5 border-slate-200/90 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group"
+                  className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-indigo-300 transition-all flex flex-col justify-between group"
                 >
                   <div className="space-y-3">
                     {/* Header */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
-                        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border ${colorClasses}`}>
+                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs ${colorClasses}`}>
                           <IconComponent className="w-5 h-5" />
                         </div>
                         <div>
-                          {sub.code && (
-                            <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 block uppercase tracking-wider">
-                              {sub.code}
-                            </span>
-                          )}
-                          <h3 className="font-bold text-slate-900 dark:text-white text-base group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            {sub.code && (
+                              <span className="text-[10px] font-mono font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 uppercase tracking-wider">
+                                {sub.code}
+                              </span>
+                            )}
+                            <Badge variant={sub.type === "TECHNICAL" ? "primary" : sub.type === "APTITUDE" ? "warning" : "neutral"} size="xs">
+                              {sub.type}
+                            </Badge>
+                          </div>
+                          <h3 className="font-extrabold text-slate-900 text-base group-hover:text-indigo-600 transition-colors leading-snug">
                             {sub.name}
                           </h3>
                         </div>
                       </div>
 
                       {/* Top Right Actions */}
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 shrink-0">
                         {isInstitution && (
                           <>
                             <button
                               onClick={() => openEditModal(sub)}
                               title="Edit Subject"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition-colors cursor-pointer"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
@@ -799,7 +816,7 @@ export function SubjectsPage() {
                                 setDeleteModalOpen(true);
                               }}
                               title="Delete Subject"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -810,44 +827,44 @@ export function SubjectsPage() {
 
                     {/* Description */}
                     {sub.description && (
-                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
                         {sub.description}
                       </p>
                     )}
 
                     {/* Allocation Badges */}
-                    <div className="space-y-1.5 pt-1">
+                    <div className="space-y-1.5 pt-0.5">
                       {sub.isApplicableToAll ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                          <Check className="w-3 h-3" /> Universal (All Students)
+                        <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-md font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <Check className="w-3.5 h-3.5 text-emerald-600" /> Universal (All Students)
                         </span>
                       ) : (
                         <div className="space-y-1">
                           {/* Department tags */}
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase mr-1">Depts:</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">DEPTS:</span>
                             {deptTags.length > 0 ? (
                               deptTags.map((dept, idx) => (
                                 <span
                                   key={idx}
-                                  className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold border border-slate-200 dark:border-slate-700"
+                                  className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold border border-slate-200/80"
                                 >
                                   {dept}
                                 </span>
                               ))
                             ) : (
-                              <span className="text-[10px] text-slate-400 italic">Unassigned</span>
+                              <span className="text-[11px] text-slate-400 italic">Unassigned (Open to All)</span>
                             )}
                           </div>
 
                           {/* Branch tags */}
                           {branchTags.length > 0 && (
-                            <div className="flex items-center gap-1 flex-wrap">
-                              <span className="text-[10px] text-slate-400 font-bold uppercase mr-1">Branches:</span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">BRANCHES:</span>
                               {branchTags.map((br, idx) => (
                                 <span
                                   key={idx}
-                                  className="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 font-semibold border border-indigo-100 dark:border-indigo-800"
+                                  className="text-[10px] px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bold border border-indigo-200"
                                 >
                                   {br}
                                 </span>
@@ -859,13 +876,13 @@ export function SubjectsPage() {
                     </div>
 
                     {/* Topics Accordion */}
-                    <div className="border-t border-slate-100 dark:border-slate-800 pt-2">
+                    <div className="border-t border-slate-100 pt-2">
                       <button
                         onClick={() => toggleExpand(sub.id)}
-                        className="w-full flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 transition-colors py-1"
+                        className="w-full flex items-center justify-between text-xs font-bold text-slate-700 hover:text-indigo-600 transition-colors py-1.5 px-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/60 cursor-pointer"
                       >
                         <span>Syllabus Modules ({topics.length} Topics)</span>
-                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                        {isExpanded ? <ChevronUp className="w-4 h-4 text-indigo-600" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                       </button>
 
                       {isExpanded && (
@@ -874,10 +891,10 @@ export function SubjectsPage() {
                             topics.map((t, idx) => (
                               <div
                                 key={idx}
-                                className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 flex items-center gap-2"
+                                className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-50 text-slate-700 border border-slate-200/60 flex items-center gap-2"
                               >
                                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
-                                <span>{typeof t === "string" ? t : t.name}</span>
+                                <span className="font-medium">{typeof t === "string" ? t : t.name}</span>
                               </div>
                             ))
                           ) : (
@@ -889,9 +906,11 @@ export function SubjectsPage() {
                   </div>
 
                   {/* Card Footer Actions */}
-                  <div className="pt-4 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-medium">
-                      <span className="font-bold text-slate-900 dark:text-white">{sub.questionCount || 0}</span>
+                  <div className="pt-3.5 mt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 text-slate-600 font-medium">
+                      <span className="font-extrabold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                        {sub.questionCount ?? 0}
+                      </span>
                       <span>questions linked</span>
                     </div>
 
@@ -902,7 +921,7 @@ export function SubjectsPage() {
                           size="xs"
                           icon={Building2}
                           onClick={() => openDeptAssignModal(sub)}
-                          className="text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+                          className="text-indigo-600 hover:bg-indigo-50 font-semibold"
                         >
                           Depts
                         </Button>
@@ -914,7 +933,7 @@ export function SubjectsPage() {
                           size="xs"
                           icon={GitBranch}
                           onClick={() => openBranchAssignModal(sub)}
-                          className="text-indigo-600 dark:text-indigo-400 border-indigo-200"
+                          className="text-indigo-600 border-indigo-200 font-semibold"
                         >
                           Grant Branches
                         </Button>
@@ -925,13 +944,13 @@ export function SubjectsPage() {
                         size="xs"
                         icon={ArrowRight}
                         onClick={() => navigate(`${location.pathname.startsWith("/institution") ? "/institution" : "/admin"}/questions?subjectId=${sub.id}`)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-2xs"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-xs flex items-center gap-1"
                       >
                         Questions
                       </Button>
                     </div>
                   </div>
-                </Card>
+                </div>
               );
             })}
           </div>
@@ -949,21 +968,21 @@ export function SubjectsPage() {
               const isAlreadyAdopted = subjects.some((s) => s.code === sub.code);
 
               return (
-                <Card
+                <div
                   key={sub.id}
-                  className="p-5 border-slate-200/90 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between"
+                  className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between"
                 >
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
-                        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border ${colorClasses}`}>
+                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs ${colorClasses}`}>
                           <IconComponent className="w-5 h-5" />
                         </div>
                         <div>
-                          <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 block uppercase tracking-wider">
+                          <span className="text-[10px] font-mono font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 uppercase tracking-wider block mb-0.5">
                             {sub.code}
                           </span>
-                          <h3 className="font-bold text-slate-900 dark:text-white text-base">
+                          <h3 className="font-extrabold text-slate-900 text-base">
                             {sub.name}
                           </h3>
                         </div>
@@ -975,7 +994,7 @@ export function SubjectsPage() {
                     </div>
 
                     {sub.description && (
-                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
                         {sub.description}
                       </p>
                     )}
@@ -985,13 +1004,13 @@ export function SubjectsPage() {
                       {topics.slice(0, 4).map((t, idx) => (
                         <span
                           key={idx}
-                          className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium"
+                          className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold border border-slate-200/60"
                         >
                           {typeof t === "string" ? t : t.name}
                         </span>
                       ))}
                       {topics.length > 4 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-50 dark:bg-slate-800/50 text-slate-400">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-50 text-slate-500 font-medium">
                           +{topics.length - 4} more
                         </span>
                       )}
@@ -999,9 +1018,9 @@ export function SubjectsPage() {
                   </div>
 
                   {/* Card Footer Actions */}
-                  <div className="pt-4 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5 text-slate-500 font-medium">
-                      <span className="font-bold text-slate-900 dark:text-white">{sub.questionCount || 0}</span>
+                  <div className="pt-3.5 mt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 text-slate-600 font-medium">
+                      <span className="font-extrabold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{sub.questionCount || 0}</span>
                       <span>questions ready</span>
                     </div>
 
@@ -1012,12 +1031,13 @@ export function SubjectsPage() {
                         icon={isAlreadyAdopted ? Check : Plus}
                         disabled={isAlreadyAdopted}
                         onClick={() => openAdoptModal(sub)}
+                        className="font-bold shadow-xs"
                       >
                         {isAlreadyAdopted ? "Adopted" : "Adopt into College"}
                       </Button>
                     )}
                   </div>
-                </Card>
+                </div>
               );
             })}
           </div>
