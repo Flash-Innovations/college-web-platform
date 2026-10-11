@@ -138,6 +138,9 @@ export function AuthProvider({ children }) {
         branchId: data.branchId,
         branchName: data.branchName,
         branchCode: data.branchCode,
+        collegeId: data.collegeId || data.departmentId,
+        collegeName: data.departmentName,
+        collegeSlug: data.username,
         status: "Active"
       };
     } else {
