@@ -9,7 +9,11 @@ export function ProtectedRoute({ allowedRoles = [] }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+  const effectiveRole = (role === "branch_admin" || Boolean(user?.branchId) || Boolean(user?.branchName) || user?.backendRole === "BRANCH_ADMIN")
+    ? "branch_admin"
+    : role;
+
+  if (allowedRoles.length > 0 && !allowedRoles.includes(effectiveRole) && !allowedRoles.includes(role)) {
     // Redirect to the user's primary dashboard if attempting to access another role's routes
     if (role === "super_admin" || role === "university_admin") {
       return <Navigate to="/college/dashboard" replace />;
@@ -17,7 +21,7 @@ export function ProtectedRoute({ allowedRoles = [] }) {
     if (role === "tpo" || role === "placement") {
       return <Navigate to="/tpo/dashboard" replace />;
     }
-    if (role === "branch_admin") {
+    if (effectiveRole === "branch_admin") {
       return <Navigate to="/branch/dashboard" replace />;
     }
     if (role === "department_admin" || role === "admin") {

@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   FileText,
@@ -33,6 +33,8 @@ import { cn } from "../../utils/cn";
 export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen }) {
   const { user, role, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isBranchPath = location.pathname.startsWith("/branch");
 
   // Central T&P (TPO) check:
   // Can be COLLEGE_ADMIN or a dedicated T&P Department account (name contains "Placement" / "TPO", code "TPO", or username "*_tpo")
@@ -59,7 +61,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
     user?.collegeName ||
     "Program";
 
-  const isBranchAdmin = role === "branch_admin" || Boolean(user?.branchName);
+  const isBranchAdmin = role === "branch_admin" || Boolean(user?.branchName) || Boolean(user?.branchId) || user?.backendRole === "BRANCH_ADMIN" || isBranchPath;
 
   const displayUserName = isBranchAdmin
     ? user?.branchName || user?.name || "Branch Coordinator"
@@ -141,7 +143,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
       ? universityAdminLinks
       : role === "tpo" || role === "placement" || isTpo
       ? tpoLinks
-      : role === "branch_admin"
+      : (role === "branch_admin" || isBranchAdmin || isBranchPath)
       ? branchAdminLinks
       : departmentAdminLinks;
 

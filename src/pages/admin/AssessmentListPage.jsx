@@ -21,7 +21,8 @@ import {
   FileCode2,
   Award,
   Briefcase,
-  BarChart3
+  BarChart3,
+  Sparkles
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { practiceService } from "../../services/practiceService";
@@ -36,11 +37,11 @@ export function AssessmentListPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const basePath = location.pathname.startsWith("/placement") ? "/placement" : location.pathname.startsWith("/institution") ? "/institution" : location.pathname.startsWith("/tpo") ? "/tpo" : location.pathname.startsWith("/branch") ? "/branch" : "/dept";
+  const isBranchAdmin = user?.role === "branch_admin" || Boolean(user?.branchName) || Boolean(user?.branchId) || user?.backendRole === "BRANCH_ADMIN" || location.pathname.startsWith("/branch");
+  const basePath = location.pathname.startsWith("/placement") ? "/placement" : location.pathname.startsWith("/institution") ? "/institution" : location.pathname.startsWith("/tpo") ? "/tpo" : (location.pathname.startsWith("/branch") || isBranchAdmin) ? "/branch" : "/dept";
   const { addToast } = useNotifications();
 
   // Role permissions
-  const isBranchAdmin = user?.role === "branch_admin" || Boolean(user?.branchName);
   const isTpo = (user?.role === "tpo" || user?.role === "placement") ||
     Boolean(user?.departmentName?.toLowerCase().includes("tpo") || user?.departmentName?.toLowerCase().includes("placement") || user?.name?.toLowerCase().includes("tpo") || user?.name?.toLowerCase().includes("placement"));
   const canCreate = !isTpo;
@@ -108,13 +109,16 @@ export function AssessmentListPage() {
         scope: scopeFilter
       });
 
-      if (res && res.data) {
-        setAssessments(res.data);
-        if (res.pagination) {
-          setPagination(res.pagination);
-        }
+      const items = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+      setAssessments(items);
+      if (res?.pagination) {
+        setPagination(res.pagination);
       } else {
-        setAssessments([]);
+        setPagination((prev) => ({
+          ...prev,
+          total: items.length,
+          totalPages: Math.max(1, Math.ceil(items.length / limit))
+        }));
       }
     } catch (err) {
       console.error("Failed to load assessments:", err);
@@ -295,6 +299,17 @@ export function AssessmentListPage() {
             <span>Refresh</span>
           </Button>
 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`${basePath}/questions`)}
+            className="flex items-center gap-2"
+            title="Browse canonical question bank catalog"
+          >
+            <BookOpen className="w-4 h-4 text-slate-500" />
+            <span>Question Bank</span>
+          </Button>
+
           {canCreate && (
             <Button
               variant="primary"
@@ -408,11 +423,18 @@ export function AssessmentListPage() {
                 ? "Create your first modular assessment or adjust your active search filters."
                 : "No assessments have been published by academic departments or branch coordinators yet."}
             </p>
-            {canCreate && (
-              <Button variant="primary" size="sm" onClick={() => setCreateModalOpen(true)}>
-                Create Assessment
+            <div className="flex items-center justify-center gap-2 flex-wrap pt-1">
+              <Button variant="outline" size="sm" onClick={() => navigate(`${basePath}/questions`)} className="flex items-center gap-1.5">
+                <BookOpen className="w-4 h-4 text-slate-500" />
+                <span>Browse Question Bank</span>
               </Button>
-            )}
+              {canCreate && (
+                <Button variant="primary" size="sm" onClick={() => setCreateModalOpen(true)} className="flex items-center gap-1.5">
+                  <Plus className="w-4 h-4" />
+                  <span>Create Assessment</span>
+                </Button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -791,3 +813,5 @@ export function AssessmentListPage() {
     </div>
   );
 }
+
+export default AssessmentListPage;
