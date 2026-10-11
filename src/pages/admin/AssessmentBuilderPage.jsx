@@ -57,11 +57,16 @@ export function AssessmentBuilderPage() {
   const [bankTypeFilter, setBankTypeFilter] = useState("ALL");
   const [bankCategoryFilter, setBankCategoryFilter] = useState("ALL");
   const [bankDifficultyFilter, setBankDifficultyFilter] = useState("ALL");
+  const [bankSourceTypeFilter, setBankSourceTypeFilter] = useState("ALL");
   const [bankPage, setBankPage] = useState(1);
   const [bankLimit] = useState(15);
   const [bankPagination, setBankPagination] = useState({ total: 0, page: 1, limit: 15, totalPages: 1 });
 
-  // Selected Question to Add
+  // Selected Questions to Add (Multi-Select & Single)
+  const [selectedBankQuestionIds, setSelectedBankQuestionIds] = useState([]);
+  const [batchAdding, setBatchAdding] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
+
   const [selectedBankQuestion, setSelectedBankQuestion] = useState(null);
   const [addPayload, setAddPayload] = useState({
     section: "APTITUDE",
@@ -110,15 +115,18 @@ export function AssessmentBuilderPage() {
   const fetchBankQuestions = useCallback(async () => {
     setBankLoading(true);
     try {
-      const res = await practiceService.getAdminQuestions({
+      const params = {
         status: "ACTIVE",
         search: bankSearch,
-        type: bankTypeFilter,
-        category: bankCategoryFilter,
-        difficulty: bankDifficultyFilter,
         page: bankPage,
         limit: bankLimit
-      });
+      };
+      if (bankTypeFilter !== "ALL") params.type = bankTypeFilter;
+      if (bankCategoryFilter !== "ALL") params.category = bankCategoryFilter;
+      if (bankDifficultyFilter !== "ALL") params.difficulty = bankDifficultyFilter;
+      if (bankSourceTypeFilter !== "ALL") params.sourceType = bankSourceTypeFilter;
+
+      const res = await practiceService.getAdminQuestions(params);
       if (res && res.data) {
         // Filter out already pinned questions
         const pinnedVersionIds = new Set(assessment?.questions?.map((q) => q.questionVersionId) || []);
@@ -133,7 +141,7 @@ export function AssessmentBuilderPage() {
     } finally {
       setBankLoading(false);
     }
-  }, [bankSearch, bankTypeFilter, bankCategoryFilter, bankDifficultyFilter, bankPage, bankLimit, assessment]);
+  }, [bankSearch, bankTypeFilter, bankCategoryFilter, bankDifficultyFilter, bankSourceTypeFilter, bankPage, bankLimit, assessment]);
 
   useEffect(() => {
     if (addModalOpen) {
@@ -144,7 +152,7 @@ export function AssessmentBuilderPage() {
   const handleSelectBankQuestion = (q) => {
     setSelectedBankQuestion(q);
     const defaultSection = q.type === "CODING" ? "CODING" : q.type === "TECHNICAL" ? "TECHNICAL" : "APTITUDE";
-    const defaultMarks = q.type === "CODING" ? 50.0 : 2.0;
+    const defaultMarks = q.type === "CODING" ? 25.0 : 2.0;
     setAddPayload({
       section: defaultSection,
       marks: defaultMarks,
@@ -152,12 +160,75 @@ export function AssessmentBuilderPage() {
     });
   };
 
+  const handleToggleSelectQuestion = (qId) => {
+    setSelectedBankQuestionIds((prev) =>
+      prev.includes(qId) ? prev.filter((id) => id !== qId) : [...prev, qId]
+    );
+  };
+
+  const handleSelectAllVisible = () => {
+    const visibleIds = bankQuestions.map((q) => q.id);
+    const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedBankQuestionIds.includes(id));
+    if (allSelected) {
+      setSelectedBankQuestionIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+    } else {
+      setSelectedBankQuestionIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+    }
+  };
+
+  // Batch Add Selected Questions to Assessment
+  const handleBatchAddQuestions = async (e) => {
+    if (e) e.preventDefault();
+    if (selectedBankQuestionIds.length === 0) return;
+
+    setBatchAdding(true);
+    setBatchProgress({ current: 0, total: selectedBankQuestionIds.length });
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < selectedBankQuestionIds.length; i++) {
+      const qId = selectedBankQuestionIds[i];
+      setBatchProgress({ current: i + 1, total: selectedBankQuestionIds.length });
+      try {
+        const qDetail = await practiceService.getAdminQuestionById(qId);
+        const versionId = qDetail.latestVersion?.id || qDetail.versions?.[0]?.id;
+
+        if (versionId) {
+          await practiceService.addQuestionToAssessment(assessment.id, {
+            questionVersionId: versionId,
+            section: addPayload.section,
+            marks: parseFloat(addPayload.marks) || (addPayload.section === "CODING" ? 25.0 : 2.0),
+            negativeMarks: parseFloat(addPayload.negativeMarks) || 0.0
+          });
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (err) {
+        console.error(`Failed to add question ${qId}:`, err);
+        failCount++;
+      }
+    }
+
+    if (addToast) {
+      addToast({
+        type: successCount > 0 ? "success" : "error",
+        title: "Batch Pinning Completed",
+        message: `Added ${successCount} question(s) to ${addPayload.section}.${failCount > 0 ? ` (${failCount} failed)` : ""}`
+      });
+    }
+
+    setSelectedBankQuestionIds([]);
+    setSelectedBankQuestion(null);
+    setBatchAdding(false);
+    fetchAssessment();
+    fetchBankQuestions();
+  };
+
   const handleAddQuestionSubmit = async (e) => {
     e.preventDefault();
     if (!selectedBankQuestion) return;
 
-    // We need the latest version ID from the selected question
-    // If the list item has id as questionId, let's fetch question details to get latest versionId
     setAddingLoading(true);
     try {
       const qDetail = await practiceService.getAdminQuestionById(selectedBankQuestion.id);
@@ -170,7 +241,7 @@ export function AssessmentBuilderPage() {
       await practiceService.addQuestionToAssessment(assessment.id, {
         questionVersionId: versionId,
         section: addPayload.section,
-        marks: parseFloat(addPayload.marks) || 1.0,
+        marks: parseFloat(addPayload.marks) || (addPayload.section === "CODING" ? 25.0 : 2.0),
         negativeMarks: parseFloat(addPayload.negativeMarks) || 0.0
       });
 
@@ -528,10 +599,20 @@ export function AssessmentBuilderPage() {
               {isDraft && (
                 <button
                   onClick={() => {
-                    setAddPayload({ ...addPayload, section: sec.key });
+                    const defaultMarks = sec.key === "CODING" ? 25.0 : 2.0;
+                    setAddPayload({ ...addPayload, section: sec.key, marks: defaultMarks, negativeMarks: 0.0 });
+                    if (sec.key === "CODING") {
+                      setBankTypeFilter("CODING");
+                    } else if (sec.key === "TECHNICAL") {
+                      setBankTypeFilter("TECHNICAL");
+                    } else {
+                      setBankTypeFilter("APTITUDE");
+                    }
+                    setSelectedBankQuestionIds([]);
+                    setSelectedBankQuestion(null);
                     setAddModalOpen(true);
                   }}
-                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer bg-indigo-50/60 hover:bg-indigo-100/80 px-2.5 py-1 rounded-lg border border-indigo-200 transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add to {sec.key}</span>
@@ -570,6 +651,24 @@ export function AssessmentBuilderPage() {
                         <p className="text-xs text-slate-500 line-clamp-2 max-w-2xl">
                           {qv.statement || ""}
                         </p>
+
+                        {sec.key === "CODING" && (
+                          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                            <span className="inline-flex items-center gap-1 font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                              <Code2 className="w-3 h-3 text-indigo-600" /> Coding Arena Challenge
+                            </span>
+                            {qv.codingProblem?.allowedLanguages?.length > 0 && (
+                              <span className="font-mono text-[11px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                                {qv.codingProblem.allowedLanguages.join(", ").toUpperCase()}
+                              </span>
+                            )}
+                            {qv.codingProblem?.testCases?.length > 0 && (
+                              <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                ✓ {qv.codingProblem.testCases.length} Test Cases Evaluated
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-4 shrink-0">
@@ -632,6 +731,8 @@ export function AssessmentBuilderPage() {
                     setBankTypeFilter("ALL");
                     setBankCategoryFilter("ALL");
                     setBankDifficultyFilter("ALL");
+                    setBankSourceTypeFilter("ALL");
+                    setSelectedBankQuestionIds([]);
                     setBankPage(1);
                   }}
                   className="px-2.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0"
@@ -641,7 +742,7 @@ export function AssessmentBuilderPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {/* Type Filter */}
               <div>
                 <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5">Question Type</label>
@@ -671,7 +772,7 @@ export function AssessmentBuilderPage() {
                   }}
                   className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="ALL">All Categories (1200+ Qs)</option>
+                  <option value="ALL">All Categories</option>
                   <option value="QUANTITATIVE">Quantitative Aptitude</option>
                   <option value="LOGICAL">Logical Reasoning</option>
                   <option value="VERBAL">Verbal Ability</option>
@@ -702,11 +803,70 @@ export function AssessmentBuilderPage() {
                   <option value="HARD">Hard</option>
                 </select>
               </div>
+
+              {/* Source Type Filter */}
+              <div>
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5">Source Type</label>
+                <select
+                  value={bankSourceTypeFilter}
+                  onChange={(e) => {
+                    setBankSourceTypeFilter(e.target.value);
+                    setBankPage(1);
+                  }}
+                  className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="ALL">All Sources</option>
+                  <option value="ORIGINAL">Original (SIPS)</option>
+                  <option value="CURATED">Curated</option>
+                  <option value="COLLEGE_CREATED">College Created</option>
+                  <option value="COLLEGE_PROVIDED">College Provided</option>
+                  <option value="COMPANY_PROVIDED">Company Provided</option>
+                  <option value="PUBLIC_SOURCE">Public Source</option>
+                  <option value="THIRD_PARTY">Third Party</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Bulk Selection Action Toolbar */}
+          <div className="flex items-center justify-between px-3 py-2 bg-slate-100/80 rounded-xl border border-slate-200 text-xs shrink-0">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="selectAllQuestions"
+                checked={bankQuestions.length > 0 && bankQuestions.every((q) => selectedBankQuestionIds.includes(q.id))}
+                onChange={handleSelectAllVisible}
+                className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+              />
+              <label htmlFor="selectAllQuestions" className="font-semibold text-slate-700 cursor-pointer text-xs select-none">
+                Select All on this Page ({bankQuestions.length})
+              </label>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {selectedBankQuestionIds.length > 0 ? (
+                <>
+                  <span className="font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200 text-xs">
+                    {selectedBankQuestionIds.length} question(s) selected
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBankQuestionIds([])}
+                    className="text-xs text-slate-500 hover:text-slate-800 underline cursor-pointer"
+                  >
+                    Deselect All
+                  </button>
+                </>
+              ) : (
+                <span className="text-[11px] text-slate-400">
+                  Select multiple questions using checkboxes for bulk addition
+                </span>
+              )}
             </div>
           </div>
 
           {/* Question List to select */}
-          <div className="flex-1 overflow-y-auto space-y-2 max-h-[42vh] border border-slate-100 rounded-xl p-1.5 bg-slate-50/50">
+          <div className="flex-1 overflow-y-auto space-y-2 max-h-[40vh] border border-slate-100 rounded-xl p-1.5 bg-slate-50/50">
             {bankLoading ? (
               <div className="py-12 text-center text-xs text-slate-400 flex flex-col items-center gap-2">
                 <RefreshCw className="w-5 h-5 text-indigo-500 animate-spin" />
@@ -716,53 +876,84 @@ export function AssessmentBuilderPage() {
               <div className="py-12 text-center text-xs text-slate-400 space-y-1">
                 <BookOpen className="w-6 h-6 text-slate-300 mx-auto" />
                 <p className="font-semibold text-slate-600">No matching active questions available.</p>
-                <p className="text-[11px] text-slate-400">Try adjusting your search query, type, or category filter.</p>
+                <p className="text-[11px] text-slate-400">Try adjusting your search query, type, or source filter.</p>
               </div>
             ) : (
               bankQuestions.map((q) => {
                 const isSelected = selectedBankQuestion?.id === q.id;
+                const isChecked = selectedBankQuestionIds.includes(q.id);
                 return (
                   <div
                     key={q.id}
-                    onClick={() => handleSelectBankQuestion(q)}
-                    className={`p-3 rounded-xl border text-xs transition-all cursor-pointer ${
-                      isSelected
+                    onClick={() => {
+                      handleToggleSelectQuestion(q.id);
+                      handleSelectBankQuestion(q);
+                    }}
+                    className={`p-3 rounded-xl border text-xs transition-all cursor-pointer flex items-start gap-3 ${
+                      isChecked || isSelected
                         ? "bg-indigo-50/90 border-indigo-400 shadow-xs ring-1 ring-indigo-400/40"
                         : "bg-white border-slate-200/80 hover:border-slate-300 hover:shadow-2xs"
                     }`}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-1.5">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="font-mono font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded text-[11px] border border-slate-200">
-                          {q.externalId || q.id.slice(0, 8)}
-                        </span>
-                        <Badge variant="neutral" size="sm">{q.type}</Badge>
-                        <Badge variant={q.difficulty === "EASY" ? "success" : q.difficulty === "MEDIUM" ? "warning" : "danger"} size="sm">
-                          {q.difficulty}
-                        </Badge>
-                        <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
-                          {q.category}
-                        </span>
-                        {q.subcategory && (
-                          <span className="text-[11px] text-slate-500 font-medium">
-                            • {q.subcategory}
+                    <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleToggleSelectQuestion(q.id)}
+                        className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="flex-1 space-y-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-mono font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded text-[11px] border border-slate-200">
+                            {q.externalId || q.id.slice(0, 8)}
+                          </span>
+                          <Badge variant="neutral" size="sm">{q.type}</Badge>
+                          <Badge variant={q.difficulty === "EASY" ? "success" : q.difficulty === "MEDIUM" ? "warning" : "danger"} size="sm">
+                            {q.difficulty}
+                          </Badge>
+                          <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                            {q.category}
+                          </span>
+                          {q.sourceType && (
+                            <span className="text-[10px] font-medium text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
+                              {q.sourceType}
+                            </span>
+                          )}
+                          {q.subcategory && (
+                            <span className="text-[11px] text-slate-500 font-medium">
+                              • {q.subcategory}
+                            </span>
+                          )}
+                        </div>
+
+                        {isChecked && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-700 bg-white px-2 py-0.5 rounded-full border border-indigo-200 shadow-2xs">
+                            <Check className="w-3 h-3 text-indigo-600" /> Selected
                           </span>
                         )}
                       </div>
 
-                      {isSelected && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-700 bg-white px-2 py-0.5 rounded-full border border-indigo-200 shadow-2xs">
-                          <Check className="w-3 h-3 text-indigo-600" /> Selected
-                        </span>
+                      <div className="font-semibold text-slate-900 text-sm">{q.title}</div>
+                      {q.statement && (
+                        <p className="text-slate-500 text-xs line-clamp-2 leading-relaxed">
+                          {q.statement}
+                        </p>
+                      )}
+
+                      {q.type === "CODING" && (
+                        <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
+                          <span className="px-2 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 inline-flex items-center gap-1">
+                            <Code2 className="w-3 h-3 text-indigo-600" /> Coding Arena Challenge
+                          </span>
+                          <span className="text-slate-500 font-mono">
+                            Multi-language Arena (Python, C++, Java, JS)
+                          </span>
+                        </div>
                       )}
                     </div>
-
-                    <div className="font-semibold text-slate-900 text-sm">{q.title}</div>
-                    {q.statement && (
-                      <p className="text-slate-500 text-xs mt-1 line-clamp-2 leading-relaxed">
-                        {q.statement}
-                      </p>
-                    )}
                   </div>
                 );
               })
@@ -802,8 +993,83 @@ export function AssessmentBuilderPage() {
             </div>
           )}
 
-          {/* Configuration for selected question */}
-          {selectedBankQuestion && (
+          {/* Bulk Pinning Bar (when 2 or more selected) */}
+          {selectedBankQuestionIds.length > 1 ? (
+            <div className="p-4 bg-indigo-50/90 rounded-xl border border-indigo-200 space-y-3 shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-bold text-indigo-950">
+                  Batch Pinning: <span className="text-indigo-700 font-extrabold">{selectedBankQuestionIds.length} Selected Questions</span>
+                </div>
+                <Badge variant="primary" size="sm">Bulk Action</Badge>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Target Section</label>
+                  <select
+                    value={addPayload.section}
+                    onChange={(e) => {
+                      const newSec = e.target.value;
+                      setAddPayload({ ...addPayload, section: newSec, marks: newSec === "CODING" ? 25.0 : 2.0 });
+                    }}
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-indigo-500 font-medium"
+                  >
+                    <option value="APTITUDE">Aptitude Section</option>
+                    <option value="TECHNICAL">Technical Section</option>
+                    <option value="CODING">Coding Section</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Marks Per Question</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0.5"
+                    required
+                    value={addPayload.marks}
+                    onChange={(e) => setAddPayload({ ...addPayload, marks: e.target.value })}
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-indigo-500 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Negative Marks</label>
+                  <input
+                    type="number"
+                    step="0.25"
+                    min="0"
+                    value={addPayload.negativeMarks}
+                    onChange={(e) => setAddPayload({ ...addPayload, negativeMarks: e.target.value })}
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-indigo-500 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedBankQuestionIds([])}
+                  className="text-xs text-slate-500 hover:text-slate-800 font-medium cursor-pointer"
+                >
+                  Clear Selection
+                </button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={handleBatchAddQuestions}
+                  disabled={batchAdding}
+                  className="font-bold shadow-md px-5"
+                >
+                  {batchAdding
+                    ? `Pinning ${batchProgress.current}/${batchProgress.total} Questions...`
+                    : `Add Selected (${selectedBankQuestionIds.length} Questions) to ${addPayload.section}`}
+                </Button>
+              </div>
+            </div>
+          ) : selectedBankQuestion ? (
+            /* Single Question Pinning Form */
             <form onSubmit={handleAddQuestionSubmit} className="p-4 bg-indigo-50/70 rounded-xl border border-indigo-100 space-y-3 shrink-0">
               <div className="flex items-center justify-between">
                 <div className="text-xs font-bold text-indigo-950 truncate max-w-lg">
@@ -860,11 +1126,11 @@ export function AssessmentBuilderPage() {
                   disabled={addingLoading}
                   className="w-full font-semibold shadow-xs"
                 >
-                  {addingLoading ? "Pinning..." : "Pin Question to Assessment"}
+                  {addingLoading ? "Pinning..." : `Pin Question to ${addPayload.section}`}
                 </Button>
               </div>
             </form>
-          )}
+          ) : null}
         </div>
       </Modal>
 
@@ -876,13 +1142,49 @@ export function AssessmentBuilderPage() {
       >
         <div className="space-y-4">
           <p className="text-sm text-slate-600 leading-relaxed">
-            Publishing this assessment will lock its questions, marks, and section structure permanently to ensure evaluation consistency across candidate batches.
+            Publishing this assessment locks its question blueprint and makes it live for student attempts.
           </p>
 
-          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
-            <div className="font-bold text-slate-900">{assessment.title}</div>
-            <div className="text-slate-600">Total Questions: {assessment.questionCount} | Total Marks: {assessment.totalMarks} pts</div>
-            <div className="text-slate-600">Duration: {assessment.durationMinutes} minutes</div>
+          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
+            <div className="font-bold text-slate-900 text-sm">{assessment.title}</div>
+            <div className="text-slate-600">
+              Total Questions: <span className="font-semibold text-slate-800">{assessment.questions?.length ?? assessment.questionCount ?? 0}</span> | 
+              Total Marks: <span className="font-semibold text-indigo-600">{assessment.totalMarks ?? 0} pts</span> | 
+              Duration: <span className="font-semibold text-slate-800">{assessment.durationMinutes || 60}m</span>
+            </div>
+            <div className="pt-1.5 border-t border-slate-200/80 text-[11px]">
+              {assessment.sipsDriveId ? (
+                <div className="flex items-center gap-1.5 text-emerald-700 font-medium">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Linked to Placement Drive ({assessment.placementDrive?.company || `#${assessment.sipsDriveId}`})</span>
+                </div>
+              ) : assessment.type === "PLACEMENT_ASSESSMENT" ? (
+                <div className="flex flex-col gap-1.5 text-amber-800 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Placement Drive Association Required</span>
+                  </div>
+                  <span className="text-[11px] text-amber-700">
+                    This blueprint is classified as a Placement Assessment. Link it to an active campus recruitment drive before publishing.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPublishModalOpen(false);
+                      setSelectedDriveId(assessment.sipsDriveId || "");
+                      setDriveModalOpen(true);
+                    }}
+                    className="text-xs font-bold text-indigo-700 underline text-left cursor-pointer mt-0.5"
+                  >
+                    Link Campus Placement Drive Now →
+                  </button>
+                </div>
+              ) : (
+                <div className="text-slate-500 font-medium">
+                  Publishing as <span className="text-indigo-600 font-semibold">General / Mock Assessment</span>. All eligible students will be able to take this assessment directly.
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
@@ -898,9 +1200,10 @@ export function AssessmentBuilderPage() {
               variant="primary"
               size="sm"
               onClick={handlePublishConfirm}
-              disabled={publishLoading}
+              disabled={publishLoading || (assessment.type === "PLACEMENT_ASSESSMENT" && !assessment.sipsDriveId)}
+              className="font-bold shadow-sm"
             >
-              {publishLoading ? "Publishing..." : "Confirm & Publish (Lock)"}
+              {publishLoading ? "Publishing..." : "Confirm & Publish"}
             </Button>
           </div>
         </div>

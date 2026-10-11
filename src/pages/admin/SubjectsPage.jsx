@@ -587,6 +587,74 @@ export function SubjectsPage() {
         </Card>
       )}
 
+      {/* Curriculum Analytics Summary KPI Ribbon */}
+      {viewMode === "CURRICULUM" && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3.5">
+          <Card className="p-3.5 border-slate-200/80 bg-white shadow-2xs hover:shadow-xs transition-all">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Subjects</span>
+              <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <BookOpen className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-xl font-black text-slate-900 mt-1">{subjects.length}</div>
+            <div className="text-[10px] text-slate-400 mt-0.5">Active curriculum courses</div>
+          </Card>
+
+          <Card className="p-3.5 border-slate-200/80 bg-white shadow-2xs hover:shadow-xs transition-all">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Universal (All)</span>
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-xl font-black text-emerald-700 mt-1">
+              {subjects.filter((s) => s.isApplicableToAll).length}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-0.5">Campus-wide enrollment</div>
+          </Card>
+
+          <Card className="p-3.5 border-slate-200/80 bg-white shadow-2xs hover:shadow-xs transition-all">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tech & Coding</span>
+              <div className="w-7 h-7 rounded-lg bg-sky-50 flex items-center justify-center text-sky-600">
+                <Code2 className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-xl font-black text-sky-700 mt-1">
+              {subjects.filter((s) => s.type === "TECHNICAL" || s.type === "CODING").length}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-0.5">Engineering curriculum</div>
+          </Card>
+
+          <Card className="p-3.5 border-slate-200/80 bg-white shadow-2xs hover:shadow-xs transition-all">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Aptitude & Mgmt</span>
+              <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">
+                <Calculator className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-xl font-black text-purple-700 mt-1">
+              {subjects.filter((s) => s.type === "APTITUDE" || s.type === "NON_TECHNICAL").length}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-0.5">Aptitude & business modules</div>
+          </Card>
+
+          <Card className="p-3.5 border-slate-200/80 bg-white shadow-2xs hover:shadow-xs transition-all col-span-2 sm:col-span-4 lg:col-span-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Modules</span>
+              <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
+                <Layers className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-xl font-black text-amber-700 mt-1">
+              {subjects.reduce((acc, s) => acc + (Array.isArray(s.topics) ? s.topics.length : 0), 0)}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-0.5">Syllabus topics tracked</div>
+          </Card>
+        </div>
+      )}
+
       {/* Filter and Search Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
         {/* Stream Filter Tabs */}
@@ -852,16 +920,15 @@ export function SubjectsPage() {
                         </Button>
                       )}
 
-                      {isBranch && (
-                        <Button
-                          variant="primary"
-                          size="xs"
-                          icon={ArrowRight}
-                          onClick={() => navigate(`/admin/questions?subjectId=${sub.id}`)}
-                        >
-                          Questions
-                        </Button>
-                      )}
+                      <Button
+                        variant="primary"
+                        size="xs"
+                        icon={ArrowRight}
+                        onClick={() => navigate(`${location.pathname.startsWith("/institution") ? "/institution" : "/admin"}/questions?subjectId=${sub.id}`)}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-2xs"
+                      >
+                        Questions
+                      </Button>
                     </div>
                   </div>
                 </Card>

@@ -131,7 +131,13 @@ export function PasswordChangeModal({ isOpen, onClose, isForceChange = false }) 
                 Cancel
               </Button>
             )}
-            <Button type="submit" variant="primary" size="sm" loading={loading} className="w-full">
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              loading={loading}
+              className="w-full bg-gradient-to-r from-indigo-600 via-indigo-700 to-indigo-800 hover:from-indigo-500 hover:to-indigo-700 text-white font-bold py-2.5 shadow-md transition-all"
+            >
               Update & Secure Account
             </Button>
           </div>

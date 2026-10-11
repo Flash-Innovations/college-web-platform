@@ -57,8 +57,9 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
     { to: "/institution/dashboard", label: "College Overview", icon: LayoutDashboard },
     { to: "/institution/departments", label: "Programs & Branches", icon: Building2, badge: "Units" },
     { to: "/institution/subjects", label: "Curriculum & Subjects", icon: GraduationCap },
-    { to: "/institution/assessments", label: "Assessments", icon: Layers },
     { to: "/institution/questions", label: "Question Bank", icon: BookOpen },
+    { to: "/institution/analytics", label: "Institutional Analytics", icon: BarChart3 },
+    { to: "/institution/reports", label: "Accreditation & NIRF Reports", icon: FileSpreadsheet, badge: "Export" },
     { to: "/institution/profile", label: "College Profile", icon: Settings }
   ];
 
@@ -68,16 +69,12 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
       label: isDeptOrProgram ? "Program Overview" : "T&P Overview",
       icon: LayoutDashboard
     },
-    ...(isDeptOrProgram
-      ? [
-          {
-            to: "/placement/branches",
-            label: "Branch Management",
-            icon: Building2,
-            badge: "Branches"
-          }
-        ]
-      : []),
+    {
+      to: "/placement/branches",
+      label: "Branch Management",
+      icon: Building2,
+      badge: "Branches"
+    },
     {
       to: "/placement/students",
       label: isDeptOrProgram ? "Student Directory" : "Universal Student Directory",
@@ -89,14 +86,18 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
       icon: Briefcase,
       badge: "Drives"
     },
-    {
-      to: "/placement/analytics",
-      label: "Placement Analytics",
-      icon: BarChart3
-    },
+    ...(isDeptOrProgram
+      ? []
+      : [
+          {
+            to: "/placement/analytics",
+            label: "Placement Analytics",
+            icon: BarChart3
+          }
+        ]),
     {
       to: "/placement/reports",
-      label: "NBA / NIRF Reports",
+      label: isDeptOrProgram ? "Accreditation & Placement Reports" : "NBA / NIRF Reports",
       icon: FileSpreadsheet,
       badge: "Export"
     },
@@ -124,8 +125,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
     { to: "/admin/subjects", label: "Curriculum & Subjects", icon: GraduationCap },
     { to: "/admin/assessments", label: "Assessments", icon: Layers },
     { to: "/admin/questions", label: "Question Bank", icon: BookOpen },
-    { to: "/placement/analytics", label: "Placement Analytics", icon: BarChart3 },
-    { to: "/placement/reports", label: "NBA / NIRF Reports", icon: FileSpreadsheet, badge: "Export" },
+    { to: "/placement/reports", label: "Accreditation & Placement Reports", icon: FileSpreadsheet, badge: "Export" },
     { to: "/admin/profile", label: "Branch Profile", icon: Settings }
   ];
 

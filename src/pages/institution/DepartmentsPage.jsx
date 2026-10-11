@@ -264,9 +264,12 @@ export function DepartmentsPage() {
         payload.password = editForm.newPassword.trim();
       }
 
-      await institutionService.updateDepartment(editDeptId, payload);
+      const res = await institutionService.updateDepartment(editDeptId, payload);
       showSuccess("Program updated successfully");
       setEditModalOpen(false);
+      if (res?.department) {
+        setDepartments((prev) => prev.map((d) => (d._id === editDeptId ? { ...d, ...res.department } : d)));
+      }
       loadDepartments();
     } catch (err) {
       console.error("Failed to update program:", err);

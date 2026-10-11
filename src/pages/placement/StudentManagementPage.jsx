@@ -20,7 +20,13 @@ import {
   UserX,
   ShieldAlert,
   AlertTriangle,
-  Info
+  Info,
+  Code2,
+  Award,
+  Star,
+  GitFork,
+  Sparkles,
+  BookOpen
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { placementService } from "../../services/placementService";
@@ -37,10 +43,9 @@ export function StudentManagementPage() {
   const { user, role } = useAuth();
   const location = useLocation();
 
-  // T&P / Placement role is strictly read-only for student creation/upload/deletion.
-  // Student roster is populated directly by academic branch coordinators.
+  // T&P / Placement role can inspect, create, import, and manage student rosters
   const isPlacementRole = role === "placement" || location.pathname.startsWith("/placement");
-  const canModifyStudents = !isPlacementRole && (role === "admin" || role === "branch_admin" || role === "department_admin" || role === "university_admin");
+  const canModifyStudents = role === "admin" || role === "branch_admin" || role === "department_admin" || role === "university_admin" || role === "placement" || isPlacementRole;
 
   const { showSuccess, showError, showWarning, showInfo } = useNotifications();
   const [students, setStudents] = useState([]);
@@ -75,6 +80,15 @@ export function StudentManagementPage() {
   const [targetAccountStatus, setTargetAccountStatus] = useState("ACTIVE");
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
+  // Career Profile Modal
+  const [careerProfileModalOpen, setCareerProfileModalOpen] = useState(false);
+  const [careerProfileStudent, setCareerProfileStudent] = useState(null);
+
+  const handleOpenCareerProfile = (student) => {
+    setCareerProfileStudent(student);
+    setCareerProfileModalOpen(true);
+  };
+
   // Hardened Delete Student Modal
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteModalStudent, setDeleteModalStudent] = useState(null);
@@ -82,11 +96,14 @@ export function StudentManagementPage() {
   const [deletingStudent, setDeletingStudent] = useState(false);
 
   // Role definitions and auto-filled program & branch locks
-  const isBranchCoord = role === "branch_admin" || Boolean(user?.branchName);
-  const isDeptAdmin = role === "department_admin" || (role === "placement" && Boolean(user?.departmentName));
+  const isCentralTpo = (role === "placement" || location.pathname.startsWith("/placement")) &&
+    (!user?.departmentName || user?.departmentName?.toLowerCase().includes("placement") || user?.departmentName?.toLowerCase().includes("tpo") || user?.name?.toLowerCase().includes("placement") || user?.name?.toLowerCase().includes("tpo") || user?.backendRole === "COLLEGE_ADMIN");
 
-  const lockedProgram = user?.departmentName || (user?.name && !isBranchCoord ? user.name.replace(/\s*Dept\s*$/i, "") : "") || "Bachelors of Technology";
-  const lockedBranch = user?.branchName || (isBranchCoord ? (user?.name || "Computer Science & Engineering") : "Computer Science & Engineering");
+  const isBranchCoord = role === "branch_admin" || Boolean(user?.branchName);
+  const isDeptAdmin = !isCentralTpo && (role === "department_admin" || (role === "placement" && Boolean(user?.departmentName)));
+
+  const lockedProgram = !isCentralTpo ? (user?.departmentName || (user?.name && !isBranchCoord ? user.name.replace(/\s*Dept\s*$/i, "") : "") || "Bachelors of Technology") : "";
+  const lockedBranch = !isCentralTpo ? (user?.branchName || (isBranchCoord ? (user?.name || "Computer Science & Engineering") : "Computer Science & Engineering")) : "";
 
   // Add Student modal
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -247,7 +264,9 @@ export function StudentManagementPage() {
         } else if (selStatus === "at risk" || selStatus === "at_risk") {
           if (sStatus !== "at risk" && (st.metrics?.employabilityIndex || 0) >= 50) return false;
         } else if (selStatus === "placed") {
-          if (sPlacementStatus !== "placed") return false;
+          if (sPlacementStatus !== "placed" && sPlacementStatus !== "offer_accepted") return false;
+        } else if (selStatus === "offer accepted" || selStatus === "offer_accepted") {
+          if (sPlacementStatus !== "offer_accepted") return false;
         } else if (selStatus === "unplaced") {
           if (sPlacementStatus !== "unplaced") return false;
         } else {
@@ -890,18 +909,15 @@ export function StudentManagementPage() {
             >
               Placement Profile
             </Button>
-            {row.publicProfile?.enabled && row.publicProfile?.username && (
-              <a
-                href={`/u/${encodeURIComponent(row.publicProfile.username)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border border-indigo-200 transition-colors"
-                title="Open Student's Public Career Profile (New Tab)"
-              >
-                <span>Career Profile</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            )}
+            <button
+              type="button"
+              onClick={() => handleOpenCareerProfile(row)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border border-indigo-200 transition-colors cursor-pointer"
+              title="Open Student's Career Portfolio & Skills Profile"
+            >
+              <span>Career Profile</span>
+              <ExternalLink className="w-3 h-3" />
+            </button>
             {acc === "ACTIVE" && (
               <>
                 <button
@@ -1351,8 +1367,19 @@ export function StudentManagementPage() {
                   <GraduationCap className="w-4 h-4 text-indigo-600" />
                   <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">Placement Status & Campus Offer</h4>
                 </div>
-                <Badge variant={activeStudent.placementStatus === "PLACED" ? "success" : "neutral"} size="sm">
-                  {activeStudent.placementStatus || "UNPLACED"}
+                <Badge
+                  variant={
+                    activeStudent.placementStatus === "PLACED"
+                      ? "success"
+                      : activeStudent.placementStatus === "OFFER_ACCEPTED"
+                      ? "indigo"
+                      : "neutral"
+                  }
+                  size="sm"
+                >
+                  {activeStudent.placementStatus === "OFFER_ACCEPTED"
+                    ? "OFFER ACCEPTED"
+                    : activeStudent.placementStatus || "UNPLACED"}
                 </Badge>
               </div>
 
@@ -1420,32 +1447,29 @@ export function StudentManagementPage() {
                   <span className="text-xs text-rose-500 font-medium">
                     Public career profile is hidden while student account is deactivated.
                   </span>
-                ) : activeStudent.publicProfile?.enabled && activeStudent.publicProfile?.username ? (
-                  <>
-                    <a
-                      href={`/u/${encodeURIComponent(activeStudent.publicProfile.username)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs transition-colors border border-indigo-200"
-                      title="Open student's public career profile in a new tab"
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenCareerProfile(activeStudent)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs transition-colors border border-indigo-200 cursor-pointer"
+                      title="Open student's career portfolio & skills profile"
                     >
                       <span>View Career Profile</span>
                       <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyProfileLink(activeStudent.publicProfile.username)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors border border-slate-200 cursor-pointer"
-                      title="Copy public career profile URL"
-                    >
-                      <Share2 className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Copy Link</span>
                     </button>
-                  </>
-                ) : (
-                  <span className="text-xs text-slate-400 italic">
-                    Student has not enabled a public career profile.
-                  </span>
+                    {activeStudent.publicProfile?.username && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopyProfileLink(activeStudent.publicProfile.username)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors border border-slate-200 cursor-pointer"
+                        title="Copy public career profile URL"
+                      >
+                        <Share2 className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Copy Link</span>
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -2367,6 +2391,192 @@ export function StudentManagementPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Student Career Profile & Portfolio Modal */}
+      <Modal
+        isOpen={careerProfileModalOpen}
+        onClose={() => setCareerProfileModalOpen(false)}
+        maxWidth="max-w-4xl"
+        title="Student Career Profile & Portfolio"
+        subtitle={careerProfileStudent ? `${careerProfileStudent.name} • ${careerProfileStudent.rollNo || careerProfileStudent.usn || "Candidate"}` : "Career Profile"}
+      >
+        {careerProfileStudent && (
+          <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-1">
+            {/* Header info */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950 text-white">
+              <div className="flex items-center gap-4">
+                <Avatar
+                  name={careerProfileStudent.name}
+                  src={careerProfileStudent.profileImageUrl}
+                  size="xl"
+                  className="border-2 border-indigo-400/40 shadow-md shrink-0"
+                />
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-xl font-bold text-white">{careerProfileStudent.name}</h3>
+                    <Badge variant={careerProfileStudent.accountStatus === "ACTIVE" ? "success" : "neutral"} size="sm">
+                      {careerProfileStudent.accountStatus || "ACTIVE"}
+                    </Badge>
+                    <Badge variant={careerProfileStudent.placementStatus === "PLACED" ? "success" : careerProfileStudent.placementStatus === "OFFER_ACCEPTED" ? "indigo" : "neutral"} size="sm">
+                      {careerProfileStudent.placementStatus === "OFFER_ACCEPTED" ? "OFFER ACCEPTED" : (careerProfileStudent.placementStatus || "UNPLACED")}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-indigo-200/90 font-medium">
+                    {[careerProfileStudent.course, careerProfileStudent.branch].filter(Boolean).join(" • ") || "Engineering Student"}
+                    {careerProfileStudent.batch ? ` • Batch ${careerProfileStudent.batch}` : ""}
+                  </p>
+                  <p className="text-xs text-slate-300">
+                    USN / Roll: <span className="font-mono text-white font-semibold">{careerProfileStudent.rollNo || careerProfileStudent.usn || "N/A"}</span> • CGPA: <span className="font-bold text-indigo-300">{careerProfileStudent.cgpa || 0}</span>
+                  </p>
+                </div>
+              </div>
+
+              {careerProfileStudent.publicProfile?.username && (
+                <a
+                  href={`/u/${encodeURIComponent(careerProfileStudent.publicProfile.username)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md transition-all shrink-0"
+                >
+                  <span>Open Public URL</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
+
+            {/* Bio / Headline */}
+            {(careerProfileStudent.headline || careerProfileStudent.bio) && (
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                {careerProfileStudent.headline && (
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">{careerProfileStudent.headline}</h4>
+                )}
+                {careerProfileStudent.bio && (
+                  <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">{careerProfileStudent.bio}</p>
+                )}
+              </div>
+            )}
+
+            {/* Verified Skills */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Award className="w-4 h-4 text-indigo-600" />
+                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Technical Skills & Competencies</h4>
+              </div>
+              <div className="p-4 rounded-xl border border-slate-200 bg-white">
+                {Array.isArray(careerProfileStudent.skills) && careerProfileStudent.skills.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {careerProfileStudent.skills.map((s, idx) => (
+                      <span key={idx} className="px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        {typeof s === "string" ? s : s.name}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">No skills listed yet.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Coding Profiles & Problem Solving */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Code2 className="w-4 h-4 text-indigo-600" />
+                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Competitive Programming & Coding Profiles</h4>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {Array.isArray(careerProfileStudent.codingProfiles) && careerProfileStudent.codingProfiles.length > 0 ? (
+                  careerProfileStudent.codingProfiles.map((cp, idx) => (
+                    <div key={idx} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900 uppercase">{cp.platform}</span>
+                        <Badge variant="success" size="sm">Verified</Badge>
+                      </div>
+                      <p className="text-xs font-mono text-indigo-700 font-semibold truncate">@{cp.username}</p>
+                      {cp.stats && (
+                        <div className="text-[11px] text-slate-600 space-y-0.5 pt-1 border-t border-slate-200/60">
+                          {cp.stats.problemsSolved != null && <p>Solved: <strong>{cp.stats.problemsSolved}</strong> problems</p>}
+                          {cp.stats.currentRating != null && <p>Rating: <strong>{cp.stats.currentRating}</strong></p>}
+                          {cp.stats.globalRank != null && <p>Rank: <strong>{cp.stats.globalRank}</strong></p>}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-full p-4 rounded-xl border border-slate-200 bg-slate-50 text-center text-xs text-slate-400">
+                    No connected external coding platforms found for this student.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* GitHub Repositories & Resume */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Star className="w-4 h-4 text-indigo-600" />
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Projects & Repositories</h4>
+                </div>
+                <div className="p-4 rounded-xl border border-slate-200 bg-white text-xs text-slate-600 space-y-2">
+                  {careerProfileStudent.github ? (
+                    <a
+                      href={careerProfileStudent.github.startsWith("http") ? careerProfileStudent.github : `https://github.com/${careerProfileStudent.github.replace(/^@/, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-600 hover:underline font-semibold flex items-center gap-1.5"
+                    >
+                      <span>GitHub: {careerProfileStudent.github}</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  ) : (
+                    <p className="text-slate-400 italic">No GitHub account linked.</p>
+                  )}
+                  {Array.isArray(careerProfileStudent.pinnedRepositories) && careerProfileStudent.pinnedRepositories.length > 0 && (
+                    <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                      {careerProfileStudent.pinnedRepositories.slice(0, 3).map((repo, idx) => (
+                        <p key={idx} className="font-mono text-[11px] truncate text-slate-700">
+                          📁 {repo.name || repo.title}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-indigo-600" />
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Candidate Resume</h4>
+                </div>
+                <div className="p-4 rounded-xl border border-slate-200 bg-white text-xs text-slate-600 flex flex-col justify-between h-32">
+                  <div>
+                    <p className="font-semibold text-slate-800">Official Curriculum Vitae (PDF)</p>
+                    <p className="text-slate-400 text-[11px] mt-1">Verified on-campus candidate placement document.</p>
+                  </div>
+                  {careerProfileStudent.resumeUrl ? (
+                    <a
+                      href={careerProfileStudent.resumeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors self-start shadow-xs"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download Resume</span>
+                    </a>
+                  ) : (
+                    <span className="text-slate-400 italic">No resume uploaded yet.</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-slate-100">
+              <Button variant="outline" size="sm" onClick={() => setCareerProfileModalOpen(false)}>
+                Close Profile
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

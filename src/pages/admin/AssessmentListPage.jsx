@@ -59,7 +59,7 @@ export function AssessmentListPage() {
   const [newAssessment, setNewAssessment] = useState({
     title: "",
     description: "",
-    type: "PLACEMENT_ASSESSMENT",
+    type: "MOCK_ASSESSMENT",
     durationMinutes: 60,
     sipsDriveId: ""
   });
@@ -124,10 +124,15 @@ export function AssessmentListPage() {
 
     setCreateLoading(true);
     try {
+      const resolvedType =
+        newAssessment.type === "PLACEMENT_ASSESSMENT" && !newAssessment.sipsDriveId
+          ? "MOCK_ASSESSMENT"
+          : newAssessment.type;
+
       const payload = {
         title: newAssessment.title.trim(),
         description: newAssessment.description?.trim() || "",
-        type: newAssessment.type || "PLACEMENT_ASSESSMENT",
+        type: resolvedType || "MOCK_ASSESSMENT",
         durationMinutes: parseInt(newAssessment.durationMinutes, 10) || 60,
         sipsDriveId: newAssessment.sipsDriveId?.trim() || null
       };

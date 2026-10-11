@@ -15,7 +15,11 @@ import {
   RefreshCw,
   Eye,
   GraduationCap,
-  Download
+  Download,
+  ExternalLink,
+  FileText,
+  Upload,
+  X
 } from "lucide-react";
 import { placementService } from "../../services/placementService";
 import { institutionService } from "../../services/institutionService";
@@ -26,9 +30,23 @@ import { Modal } from "../../components/common/Modal";
 import { ProgressBar } from "../../components/common/ProgressBar";
 import Avatar from "../../components/common/Avatar";
 import { useNotifications } from "../../context/NotificationContext";
+import { useAuth } from "../../context/AuthContext";
 
 export function JobDescriptionsPage() {
+  const { user, role } = useAuth();
   const { showSuccess, showError, showWarning, showInfo } = useNotifications();
+
+  // Role permissions: Department & Branch admins inspect matching & applicants, but cannot create or delete institutional JDs
+  const isDeptOrProgram = Boolean(
+    user?.departmentName ||
+    user?.departmentId ||
+    user?.backendRole === "DEPARTMENT_ADMIN" ||
+    user?.backendRole === "BRANCH_ADMIN" ||
+    role === "department_admin" ||
+    role === "branch_admin" ||
+    (user?.role === "placement" && user?.name && !user.name.toLowerCase().includes("universal") && !user.name.toLowerCase().includes("central tpo"))
+  );
+  const canManageJds = !isDeptOrProgram && (role === "placement" || role === "university_admin" || role === "super_admin");
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState(null);
@@ -71,8 +89,70 @@ export function JobDescriptionsPage() {
     description: "Seeking energetic software engineers with passion for scalable products.",
     jobType: "Full-time",
     targetCourse: "",
-    targetBranch: []
+    targetBranch: [],
+    externalLink: "",
+    jdPdfUrl: "",
+    jdPdfPublicId: "",
+    jdPdfOriginalName: ""
   });
+
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [pdfUploadError, setPdfUploadError] = useState("");
+  const [uploadedPdfInfo, setUploadedPdfInfo] = useState(null);
+
+  const handleJdPdfChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf") {
+      setPdfUploadError("Please select a valid PDF file.");
+      showError("Only PDF documents (.pdf) are allowed.");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setPdfUploadError("File size exceeds 10MB limit.");
+      showError("PDF file size must be under 10MB.");
+      return;
+    }
+
+    setPdfUploadError("");
+    setUploadingPdf(true);
+    try {
+      const res = await placementService.uploadJdPdf(file);
+      const data = res.data || res;
+      setUploadedPdfInfo({
+        url: data.url,
+        publicId: data.publicId || "",
+        originalName: data.originalName || file.name,
+        size: data.size || file.size
+      });
+      setNewJob((prev) => ({
+        ...prev,
+        jdPdfUrl: data.url,
+        jdPdfPublicId: data.publicId || "",
+        jdPdfOriginalName: data.originalName || file.name
+      }));
+      showSuccess(`JD document "${data.originalName || file.name}" uploaded successfully.`);
+    } catch (err) {
+      console.error("Failed to upload JD PDF:", err);
+      const msg = err.message || "Failed to upload JD PDF document.";
+      setPdfUploadError(msg);
+      showError(msg);
+    } finally {
+      setUploadingPdf(false);
+    }
+  };
+
+  const handleRemoveJdPdf = () => {
+    setUploadedPdfInfo(null);
+    setNewJob((prev) => ({
+      ...prev,
+      jdPdfUrl: "",
+      jdPdfPublicId: "",
+      jdPdfOriginalName: ""
+    }));
+  };
 
   const [departments, setDepartments] = useState([]);
 
@@ -363,14 +443,21 @@ export function JobDescriptionsPage() {
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          size="sm"
-          icon={Plus}
-          onClick={() => setCreateModalOpen(true)}
-        >
-          Add New Job Description
-        </Button>
+        {canManageJds ? (
+          <Button
+            variant="primary"
+            size="sm"
+            icon={Plus}
+            onClick={() => setCreateModalOpen(true)}
+          >
+            Add New Job Description
+          </Button>
+        ) : (
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs">
+            <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Centrally Authored by T&P Cell</span>
+          </div>
+        )}
       </div>
 
       {/* 2-Column Layout: JDs List & SIPS Match Engine Analysis Drawer */}
@@ -552,14 +639,16 @@ export function JobDescriptionsPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="xs"
-                    onClick={() => setDeleteModalOpen(true)}
-                    className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200"
-                  >
-                    Delete Drive
-                  </Button>
+                  {canManageJds && (
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      onClick={() => setDeleteModalOpen(true)}
+                      className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200"
+                    >
+                      Delete Drive
+                    </Button>
+                  )}
 
                   <div className="p-3 rounded-2xl bg-indigo-50 border border-indigo-100 text-center shrink-0">
                     <span className="text-[10px] font-bold text-indigo-900 uppercase">
@@ -574,6 +663,38 @@ export function JobDescriptionsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* External Registration Link & Official JD Document Banner */}
+              {(selectedJob.externalLink || selectedJob.jdPdfUrl) && (
+                <div className="flex flex-wrap items-center gap-3 p-3.5 bg-slate-50 border border-slate-200/90 rounded-2xl animate-in fade-in duration-200">
+                  {selectedJob.externalLink && (
+                    <a
+                      href={selectedJob.externalLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                      title="Open external application registration form (e.g. Google Form, Workday)"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>Apply via External Form (Google Form)</span>
+                    </a>
+                  )}
+                  {selectedJob.jdPdfUrl && (
+                    <a
+                      href={selectedJob.jdPdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download={selectedJob.jdPdfOriginalName || "Job_Description.pdf"}
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                      title="View or download official PDF document"
+                    >
+                      <FileText className="w-4 h-4 text-rose-500" />
+                      <span>{selectedJob.jdPdfOriginalName || "Official JD Document (PDF)"}</span>
+                      <Download className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
+                    </a>
+                  )}
+                </div>
+              )}
 
               {/* Required Skills Matrix */}
               <div>
@@ -1305,6 +1426,104 @@ export function JobDescriptionsPage() {
                 <AlertCircle className="w-3 h-3 shrink-0" />
                 {jobErrors.description}
               </p>
+            )}
+          </div>
+
+          {/* External Form Link (Google Form, etc.) */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+              External Application Form Link (Optional)
+            </label>
+            <div className="relative">
+              <input
+                type="url"
+                disabled={submitting || uploadingPdf}
+                value={newJob.externalLink}
+                onChange={(e) => setNewJob({ ...newJob, externalLink: e.target.value })}
+                placeholder="https://forms.gle/... or https://jobs.company.com/apply"
+                className="w-full px-3.5 py-2 pl-9 rounded-xl border border-slate-200 text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+              />
+              <ExternalLink className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Provide an external registration form (such as a Google Form link) for candidates to apply directly.
+            </p>
+          </div>
+
+          {/* Upload Official JD Document (PDF) with Cloudinary native integration */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+              Official JD Document (PDF File)
+            </label>
+            {uploadedPdfInfo ? (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-200 animate-in fade-in duration-200">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-2 rounded-lg bg-emerald-100 text-emerald-700 shrink-0">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-900 truncate">
+                      {uploadedPdfInfo.originalName}
+                    </p>
+                    <p className="text-[11px] text-emerald-700 font-medium">
+                      Cloudinary PDF verified and attached
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <a
+                    href={uploadedPdfInfo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-white rounded-lg transition-colors"
+                    title="Preview uploaded PDF"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={handleRemoveJdPdf}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                    title="Remove attached PDF"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="relative">
+                <label className={`flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
+                  uploadingPdf
+                    ? "border-indigo-300 bg-indigo-50/50"
+                    : "border-slate-200 hover:border-indigo-300 hover:bg-slate-50/50"
+                }`}>
+                  <input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    disabled={submitting || uploadingPdf}
+                    onChange={handleJdPdfChange}
+                    className="sr-only"
+                  />
+                  {uploadingPdf ? (
+                    <div className="flex items-center gap-2 text-xs font-semibold text-indigo-600 py-1">
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Uploading PDF to Cloudinary...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-xs text-slate-600 py-1">
+                      <Upload className="w-4 h-4 text-indigo-500" />
+                      <span className="font-semibold text-indigo-600">Click to upload JD PDF</span>
+                      <span className="text-slate-400">• Maximum 10MB</span>
+                    </div>
+                  )}
+                </label>
+                {pdfUploadError && (
+                  <p className="text-[11px] font-medium text-rose-600 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {pdfUploadError}
+                  </p>
+                )}
+              </div>
             )}
           </div>
 

@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import katex from "katex";
 import { Terminal, Code2, Sparkles, BookOpen, AlertCircle, Copy, Check } from "lucide-react";
+import { DIQuestionChart, isDIQuestion } from "./DIQuestionChart";
 
 /**
  * Safely render a LaTeX math snippet into HTML using KaTeX.
@@ -160,8 +161,10 @@ function ExampleSection({ examplesText }) {
 /**
  * Universal Problem Statement Viewer with Math / LaTeX formatting
  */
-export function ProblemStatement({ statement, className = "" }) {
+export function ProblemStatement({ statement, question, className = "" }) {
   const parsed = useMemo(() => parseProblemSections(statement), [statement]);
+  const effectiveQuestion = question || { statement };
+  const showChart = isDIQuestion(effectiveQuestion);
 
   const renderParagraphs = (rawText) => {
     if (!rawText) return null;
@@ -174,7 +177,7 @@ export function ProblemStatement({ statement, className = "" }) {
       return (
         <p
           key={idx}
-          className="leading-relaxed text-slate-700"
+          className="leading-relaxed text-slate-700 dark:text-slate-300"
           dangerouslySetInnerHTML={{ __html: html }}
         />
       );
@@ -183,6 +186,9 @@ export function ProblemStatement({ statement, className = "" }) {
 
   return (
     <div className={`space-y-4 text-xs sm:text-sm ${className}`}>
+      {/* Visual Data Interpretation Chart Exhibit */}
+      {showChart && <DIQuestionChart question={effectiveQuestion} />}
+
       {/* 1. Main Problem Description */}
       {parsed.description && (
         <div className="space-y-2.5">

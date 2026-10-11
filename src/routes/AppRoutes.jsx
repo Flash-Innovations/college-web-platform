@@ -13,10 +13,11 @@ import { LoginPage } from "../pages/auth/LoginPage";
 import { LandingPage } from "../pages/LandingPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 
-// Lazy-loaded Legal Pages
+// Lazy-loaded Legal & Public Pages
 const PrivacyPolicyPage = lazyNamed(() => import("../pages/legal/PrivacyPolicyPage"), "PrivacyPolicyPage");
 const TermsOfServicePage = lazyNamed(() => import("../pages/legal/TermsOfServicePage"), "TermsOfServicePage");
 const DataSecurityPage = lazyNamed(() => import("../pages/legal/DataSecurityPage"), "DataSecurityPage");
+const PublicStudentProfilePage = lazyNamed(() => import("../pages/public/PublicStudentProfilePage"), "PublicStudentProfilePage");
 
 // Lazy-loaded University / Institution Admin Pages
 const InstitutionDashboard = lazyNamed(() => import("../pages/institution/InstitutionDashboard"), "InstitutionDashboard");
@@ -85,6 +86,9 @@ export function AppRoutes() {
         <Route path="/terms" element={<TermsOfServicePage />} />
         <Route path="/security" element={<DataSecurityPage />} />
 
+        {/* Public Student Career Profile */}
+        <Route path="/u/:username" element={<PublicStudentProfilePage />} />
+
         {/* ========================================================================= */}
         {/* UNIVERSITY / MASTER COLLEGE ADMIN WORKSPACE                               */}
         {/* ========================================================================= */}
@@ -94,6 +98,8 @@ export function AppRoutes() {
             <Route path="/institution/departments" element={<DepartmentsPage />} />
             <Route path="/institution/hierarchy" element={<DepartmentsPage />} />
             <Route path="/institution/profile" element={<UniversityProfilePage />} />
+            <Route path="/institution/reports" element={<PlacementReportsPage />} />
+            <Route path="/institution/analytics" element={<PlacementAnalyticsPage />} />
             <Route path="/institution/assessments" element={<AssessmentListPage />} />
             <Route path="/institution/assessments/:assessmentId" element={<AssessmentBuilderPage />} />
             <Route path="/institution/assessments/:assessmentId/results" element={<AssessmentResultsPage />} />

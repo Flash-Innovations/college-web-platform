@@ -336,6 +336,10 @@ export const placementService = {
             allowedBranches: j.allowedBranches || ["CSE", "ISE", "ECE"],
             requiredSkills: Array.isArray(j.requiredSkills) ? j.requiredSkills : ["Java", "SQL"],
             description: j.description || "Exciting engineering role on campus.",
+            externalLink: j.externalLink || "",
+            jdPdfUrl: j.jdPdfUrl || "",
+            jdPdfPublicId: j.jdPdfPublicId || "",
+            jdPdfOriginalName: j.jdPdfOriginalName || "",
             studentMatch: 85,
             batchEligibleCount: j.eligibleCount || 0,
             batchMatchedCount: j.matchedCount || 0,
@@ -349,6 +353,15 @@ export const placementService = {
       console.warn("Could not fetch jobs from backend:", e.message);
     }
     return [];
+  },
+
+  /**
+   * Upload official Job Description PDF document to Cloudinary / storage
+   */
+  async uploadJdPdf(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return await api.post('/api/admin/jobs/upload-pdf', formData);
   },
 
   /**
@@ -392,6 +405,10 @@ export const placementService = {
       allowedCourses: coursesArr,
       requiredSkills: requiredSkillsArr,
       description: newJobData.description || "",
+      externalLink: newJobData.externalLink || "",
+      jdPdfUrl: newJobData.jdPdfUrl || "",
+      jdPdfPublicId: newJobData.jdPdfPublicId || "",
+      jdPdfOriginalName: newJobData.jdPdfOriginalName || "",
       deadline: newJobData.deadline ? new Date(newJobData.deadline).toISOString() : new Date(Date.now() + 30 * 86400000).toISOString()
     };
 
@@ -412,6 +429,10 @@ export const placementService = {
       requiredSkills: created.requiredSkills,
       allowedBranches: created.allowedBranches,
       description: created.description,
+      externalLink: created.externalLink || "",
+      jdPdfUrl: created.jdPdfUrl || "",
+      jdPdfPublicId: created.jdPdfPublicId || "",
+      jdPdfOriginalName: created.jdPdfOriginalName || "",
       status: "Active Drive"
     };
   },

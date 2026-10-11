@@ -116,7 +116,7 @@ export function InstitutionDashboard() {
               size="sm"
               icon={Key}
               onClick={() => setIsPasswordModalOpen(true)}
-              className="border-slate-700 text-slate-200 hover:bg-slate-800"
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold border-amber-400 shadow-md transition-all hover:scale-[1.02]"
             >
               Change Password
             </Button>

@@ -9,13 +9,15 @@ import {
   Save,
   RefreshCw,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Key
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { institutionService } from "../../services/institutionService";
 import { Card, CardHeader } from "../../components/common/Card";
 import { Button } from "../../components/common/Button";
+import { PasswordChangeModal } from "../../components/common/PasswordChangeModal";
 
 export function UniversityProfilePage() {
   const { user, updateUser } = useAuth();
@@ -23,6 +25,7 @@ export function UniversityProfilePage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
     code: "",
@@ -117,15 +120,27 @@ export function UniversityProfilePage() {
           </p>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={loadProfile}
-          disabled={loading}
-          icon={RefreshCw}
-        >
-          Reload
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsPasswordModalOpen(true)}
+            icon={Key}
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold border-amber-400 shadow-xs transition-all hover:scale-[1.02]"
+          >
+            Change Password
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadProfile}
+            disabled={loading}
+            icon={RefreshCw}
+          >
+            Reload
+          </Button>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -289,6 +304,12 @@ export function UniversityProfilePage() {
           </Button>
         </div>
       </form>
+
+      <PasswordChangeModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+        isForceChange={false}
+      />
     </div>
   );
 }

@@ -76,17 +76,23 @@ export function BranchesPage() {
   const [branchToDelete, setBranchToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  const activeDeptId = user?.departmentId || user?.id;
+  const isCentralTpo = (user?.role === "placement" || window.location.pathname.startsWith("/placement")) &&
+    (!user?.departmentName || user?.departmentName?.toLowerCase().includes("placement") || user?.departmentName?.toLowerCase().includes("tpo") || user?.name?.toLowerCase().includes("placement") || user?.name?.toLowerCase().includes("tpo") || user?.backendRole === "COLLEGE_ADMIN");
 
-  const loadBranches = async () => {
+  const [availableDepartments, setAvailableDepartments] = useState([]);
+  const [selectedDeptId, setSelectedDeptId] = useState(user?.departmentId || user?.id || "");
+  const activeDeptId = selectedDeptId || user?.departmentId || user?.id;
+
+  const loadBranches = async (targetId = activeDeptId) => {
+    if (!targetId) return;
     try {
       setLoading(true);
-      const res = await institutionService.getDepartmentBranches(activeDeptId);
+      const res = await institutionService.getDepartmentBranches(targetId);
       setBranches(res.branches || []);
       setDepartmentInfo({
         name: res.departmentName || user?.departmentName || user?.name || "Program",
         code: res.departmentCode || user?.departmentCode || "",
-        id: res.departmentId || activeDeptId
+        id: res.departmentId || targetId
       });
     } catch (err) {
       console.error("Failed to load branches:", err);
@@ -97,7 +103,26 @@ export function BranchesPage() {
   };
 
   useEffect(() => {
-    loadBranches();
+    async function init() {
+      let deptId = user?.departmentId || user?.id;
+      try {
+        const deptsRes = await institutionService.getDepartments().catch(() => null);
+        const depts = deptsRes?.departments || (Array.isArray(deptsRes) ? deptsRes : []);
+        if (depts.length > 0) {
+          setAvailableDepartments(depts);
+          if (isCentralTpo) {
+            const academicDept = depts.find(d => (d.type || '').toUpperCase() === 'ACADEMIC') || depts[0];
+            if (academicDept) {
+              deptId = academicDept._id || academicDept.id;
+              setSelectedDeptId(deptId);
+            }
+          }
+        }
+      } catch (_) {}
+      loadBranches(deptId);
+    }
+    init();
+
     if (searchParams.get("action") === "new") {
       setCreateModalOpen(true);
       searchParams.delete("action");
@@ -290,11 +315,32 @@ export function BranchesPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {availableDepartments.length > 1 && (
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+              <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">
+                Department:
+              </label>
+              <select
+                value={selectedDeptId}
+                onChange={(e) => {
+                  setSelectedDeptId(e.target.value);
+                  loadBranches(e.target.value);
+                }}
+                className="bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer"
+              >
+                {availableDepartments.map((d) => (
+                  <option key={d._id || d.id} value={d._id || d.id}>
+                    {d.name} ({d.code || "DEPT"})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <Button
             variant="outline"
             size="sm"
-            onClick={loadBranches}
+            onClick={() => loadBranches(activeDeptId)}
             disabled={loading}
             icon={RefreshCw}
           >

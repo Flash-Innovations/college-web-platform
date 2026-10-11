@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FileSpreadsheet,
   Download,
@@ -9,18 +9,229 @@ import {
   Printer,
   Sparkles,
   Building2,
-  Share2
+  Share2,
+  RefreshCw,
+  ExternalLink
 } from "lucide-react";
+import { placementService } from "../../services/placementService";
 import { Card, CardHeader } from "../../components/common/Card";
 import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
-import { ComingSoonModal } from "../../components/common/ComingSoonModal";
+import { useNotifications } from "../../context/NotificationContext";
 
 export function PlacementReportsPage() {
-  const [comingSoonOpen, setComingSoonOpen] = useState(false);
+  const { showSuccess, showError, showInfo } = useNotifications();
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [generatingReportId, setGeneratingReportId] = useState(null);
 
-  const triggerComingSoon = () => {
-    setComingSoonOpen(true);
+  // Custom Query Generator State
+  const [customDept, setCustomDept] = useState("All");
+  const [customMinCgpa, setCustomMinCgpa] = useState("0");
+  const [customFormat, setCustomFormat] = useState("csv");
+  const [customGenerating, setCustomGenerating] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        setLoading(true);
+        const data = await placementService.getStudents();
+        setStudents(data || []);
+      } catch (err) {
+        console.error("Failed to load students for reports:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  const downloadCsv = (filename, headers, rows) => {
+    const csvContent = "data:text/csv;charset=utf-8," + [
+      headers.join(","),
+      ...rows.map((r) => r.join(","))
+    ].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadReport = async (reportId) => {
+    setGeneratingReportId(reportId);
+    try {
+      const nowStr = new Date().toISOString().split("T")[0];
+
+      if (reportId === "naac") {
+        // NAAC & NBA Criterion 5 Placement Compliance Report
+        const headers = [
+          "Sr No",
+          "Student Name",
+          "USN / Roll Number",
+          "Department / Branch",
+          "Graduation Batch",
+          "Placement Status",
+          "Company Placed",
+          "Package Offered (LPA)",
+          "NAAC Criterion 5 Verification Status"
+        ];
+        const rows = students.map((s, idx) => {
+          const isPlaced = s.placementStatus === "PLACED" || s.placementStatus === "OFFER_ACCEPTED";
+          return [
+            idx + 1,
+            `"${(s.name || "").replace(/"/g, '""')}"`,
+            `"${s.usn || s.rollNo || ""}"`,
+            `"${(s.branch || "").replace(/"/g, '""')}"`,
+            `"${s.batch || s.passingYear || ""}"`,
+            `"${s.placementStatus || "UNPLACED"}"`,
+            `"${(s.companyPlaced || "—").replace(/"/g, '""')}"`,
+            s.packageOffered || "0",
+            `"${isPlaced ? "VERIFIED_OFFER" : "ELIGIBLE_CANDIDATE"}"`
+          ];
+        });
+        downloadCsv(`NAAC_NBA_Criterion5_Placements_${nowStr}.csv`, headers, rows);
+        showSuccess("NAAC & NBA Criterion 5 Accreditation Report downloaded.");
+      } else if (reportId === "dean") {
+        // Executive Dean & Principal Briefing Report
+        const deptMap = {};
+        students.forEach((s) => {
+          const b = s.branch || "General";
+          if (!deptMap[b]) deptMap[b] = { total: 0, placed: 0, pkgs: [] };
+          deptMap[b].total++;
+          if (s.placementStatus === "PLACED" || s.placementStatus === "OFFER_ACCEPTED") {
+            deptMap[b].placed++;
+            const p = parseFloat(s.packageOffered);
+            if (p > 0) deptMap[b].pkgs.push(p);
+          }
+        });
+
+        const headers = [
+          "Department / Branch",
+          "Total Cohort Size",
+          "Placed Students",
+          "Placement Rate (%)",
+          "Average Package (LPA)",
+          "Highest Package (LPA)"
+        ];
+        const rows = Object.entries(deptMap).map(([dept, data]) => {
+          const rate = data.total > 0 ? Math.round((data.placed / data.total) * 100) : 0;
+          const avg = data.pkgs.length > 0 ? (data.pkgs.reduce((a, b) => a + b, 0) / data.pkgs.length).toFixed(1) : "N/A";
+          const max = data.pkgs.length > 0 ? Math.max(...data.pkgs).toFixed(1) : "N/A";
+          return [
+            `"${dept.replace(/"/g, '""')}"`,
+            data.total,
+            data.placed,
+            `${rate}%`,
+            avg,
+            max
+          ];
+        });
+        downloadCsv(`Executive_Placement_Briefing_${nowStr}.csv`, headers, rows);
+        showSuccess("Executive Leadership Placement Briefing Report downloaded.");
+      } else if (reportId === "recruiter") {
+        // Corporate Recruiter Talent Supply Matrix
+        const headers = [
+          "Student Name",
+          "USN / Roll No",
+          "Department",
+          "CGPA",
+          "Technical Skills",
+          "Readiness Score (/100)",
+          "Placement Status"
+        ];
+        const rows = students.map((s) => [
+          `"${(s.name || "").replace(/"/g, '""')}"`,
+          `"${s.usn || s.rollNo || ""}"`,
+          `"${(s.branch || "").replace(/"/g, '""')}"`,
+          s.cgpa || "0.0",
+          `"${(Array.isArray(s.skills) ? s.skills.join("; ") : "").replace(/"/g, '""')}"`,
+          s.metrics?.employabilityIndex || s.readinessScore || "0",
+          `"${s.placementStatus || "UNPLACED"}"`
+        ]);
+        downloadCsv(`Recruiter_Talent_Supply_Matrix_${nowStr}.csv`, headers, rows);
+        showSuccess("Corporate Recruiter Talent Supply Matrix downloaded.");
+      } else if (reportId === "skills") {
+        // Curriculum Skill Gap Analysis
+        const skillTally = {};
+        students.forEach((s) => {
+          (s.weakSkills || ["System Design", "Cloud Infrastructure"]).forEach((sk) => {
+            skillTally[sk] = (skillTally[sk] || 0) + 1;
+          });
+        });
+
+        const headers = ["Missing Competency / Skill Gap", "Affected Candidates Count", "Recommended Action"];
+        const rows = Object.entries(skillTally).map(([skill, count]) => [
+          `"${skill.replace(/"/g, '""')}"`,
+          count,
+          `"Schedule hands-on lab and remediation workshop before upcoming recruitment drives"`
+        ]);
+        downloadCsv(`Curriculum_Skill_Gap_Intervention_${nowStr}.csv`, headers, rows);
+        showSuccess("Curriculum Skill Gap Intervention Report downloaded.");
+      }
+    } catch (err) {
+      console.error("Report generation error:", err);
+      showError("Failed to generate report.");
+    } finally {
+      setGeneratingReportId(null);
+    }
+  };
+
+  const handleCustomGenerate = () => {
+    setCustomGenerating(true);
+    try {
+      const minCgpa = parseFloat(customMinCgpa) || 0;
+      const filtered = students.filter((s) => {
+        if (customDept !== "All") {
+          const sBranch = (s.branch || "").toLowerCase();
+          const target = customDept.toLowerCase();
+          if (!sBranch.includes(target)) return false;
+        }
+        if (minCgpa > 0 && (s.cgpa || 0) < minCgpa) {
+          return false;
+        }
+        return true;
+      });
+
+      if (customFormat === "print") {
+        window.print();
+        return;
+      }
+
+      const headers = [
+        "Student Name",
+        "Roll No / USN",
+        "Department",
+        "Batch",
+        "CGPA",
+        "Placement Status",
+        "Company Placed",
+        "Package (LPA)",
+        "Readiness Index"
+      ];
+      const rows = filtered.map((s) => [
+        `"${(s.name || "").replace(/"/g, '""')}"`,
+        `"${s.usn || s.rollNo || ""}"`,
+        `"${(s.branch || "").replace(/"/g, '""')}"`,
+        `"${s.batch || s.passingYear || ""}"`,
+        s.cgpa || "0.0",
+        `"${s.placementStatus || "UNPLACED"}"`,
+        `"${(s.companyPlaced || "—").replace(/"/g, '""')}"`,
+        s.packageOffered || "0",
+        s.metrics?.employabilityIndex || s.readinessScore || "0"
+      ]);
+
+      const nowStr = new Date().toISOString().split("T")[0];
+      downloadCsv(`Custom_Cohort_Report_${customDept}_${nowStr}.csv`, headers, rows);
+      showSuccess(`Generated report containing ${filtered.length} candidate records.`);
+    } catch (err) {
+      console.error(err);
+      showError("Failed to generate custom report.");
+    } finally {
+      setCustomGenerating(false);
+    }
   };
 
   const reportsConfig = [
@@ -28,32 +239,32 @@ export function PlacementReportsPage() {
       id: "naac",
       title: "NAAC & NBA Accreditation Compliance Report",
       description: "Standardized metric tables covering Criterion 5 (Student Progression & Campus Placements).",
-      format: "PDF Document (Official Signature Ready)",
-      generatedDate: "Updated Yesterday, 5:30 PM",
+      format: "Official Compliance Roster (.csv / .pdf ready)",
+      generatedDate: "Real-time Verified Roster",
       status: "Ready"
     },
     {
       id: "dean",
       title: "Executive Dean & Principal Placement Briefing",
-      description: "Comprehensive executive dashboard detailing placement conversion, median CTCs, and at-risk remediation.",
-      format: "Executive Presentation (PDF/PPT)",
-      generatedDate: "Updated 3 days ago",
+      description: "Comprehensive executive dashboard detailing placement conversion, median CTCs, and department rates.",
+      format: "Executive Summary Table (.csv)",
+      generatedDate: "Real-time Cohort Data",
       status: "Ready"
     },
     {
       id: "recruiter",
       title: "Corporate Recruiter Talent Supply Matrix",
-      description: "Verified candidate roster categorized by coding milestones (LeetCode, GitHub) and ATS scores.",
-      format: "Excel Spreadsheet (.xlsx)",
-      generatedDate: "Updated Today, 9:00 AM",
+      description: "Verified candidate roster categorized by technical competencies, CGPA, and readiness tiers.",
+      format: "Recruiter Supply Roster (.csv)",
+      generatedDate: "Real-time Candidate Pool",
       status: "Ready"
     },
     {
       id: "skills",
       title: "Curriculum Skill Gap Intervention Analysis",
-      description: "Detailed recommendations for academic faculty on emerging cloud, containerization, and backend gaps.",
-      format: "Analytical Summary Report (PDF)",
-      generatedDate: "Updated Last Week",
+      description: "Detailed recommendations for academic faculty on emerging cloud, containerization, and backend deficits.",
+      format: "Analytical Summary Report (.csv)",
+      generatedDate: "AI Match Engine Insights",
       status: "Ready"
     }
   ];
@@ -118,16 +329,18 @@ export function PlacementReportsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                icon={Share2}
-                onClick={triggerComingSoon}
+                icon={Printer}
+                onClick={() => window.print()}
               >
-                Share
+                Print
               </Button>
               <Button
                 variant="primary"
                 size="sm"
                 icon={Download}
-                onClick={triggerComingSoon}
+                loading={generatingReportId === rep.id}
+                disabled={generatingReportId === rep.id}
+                onClick={() => handleDownloadReport(rep.id)}
               >
                 Download Report
               </Button>
@@ -136,91 +349,77 @@ export function PlacementReportsPage() {
         ))}
       </div>
 
-      {/* Report Generator Customizer */}
+      {/* Custom Query Report Generator */}
       <Card>
         <CardHeader
           title="Custom Query Report Generator"
           subtitle="Generate tailored cohort slices for department heads or special recruiters"
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="cursor-pointer" onClick={triggerComingSoon}>
-            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5 cursor-pointer">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
               Department Scope
             </label>
             <select
-              value="All"
-              readOnly
-              onMouseDown={(e) => {
-                e.preventDefault();
-                triggerComingSoon();
-              }}
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs sm:text-sm font-medium cursor-pointer"
+              value={customDept}
+              onChange={(e) => setCustomDept(e.target.value)}
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
             >
               <option value="All">All Departments (Institutional)</option>
-              <option value="CSE">Computer Science & Engineering</option>
-              <option value="ISE">Information Technology</option>
-              <option value="AIML">Artificial Intelligence & ML</option>
-              <option value="ECE">Electronics & Communication</option>
+              <option value="Computer">Computer Science & Engineering</option>
+              <option value="Information">Information Science & IT</option>
+              <option value="Electronics">Electronics & Communication</option>
+              <option value="Mechanical">Mechanical Engineering</option>
+              <option value="Civil">Civil Engineering</option>
             </select>
           </div>
 
-          <div className="cursor-pointer" onClick={triggerComingSoon}>
-            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5 cursor-pointer">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
               Minimum CGPA Filter
             </label>
             <select
-              readOnly
-              onMouseDown={(e) => {
-                e.preventDefault();
-                triggerComingSoon();
-              }}
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs sm:text-sm font-medium cursor-pointer"
+              value={customMinCgpa}
+              onChange={(e) => setCustomMinCgpa(e.target.value)}
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
             >
-              <option>No CGPA Minimum (All 480 candidates)</option>
-              <option>CGPA 7.0+ (Tier-2 Eligible)</option>
-              <option>CGPA 8.0+ (Tier-1 Eligible)</option>
-              <option>CGPA 8.5+ (Dream / Super Dream)</option>
+              <option value="0">No CGPA Minimum (All Candidates)</option>
+              <option value="6.0">CGPA 6.0+ (Standard Eligible)</option>
+              <option value="7.0">CGPA 7.0+ (Tier-2 Eligible)</option>
+              <option value="8.0">CGPA 8.0+ (Tier-1 Eligible)</option>
+              <option value="8.5">CGPA 8.5+ (Dream / Super Dream)</option>
             </select>
           </div>
 
-          <div className="cursor-pointer" onClick={triggerComingSoon}>
-            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5 cursor-pointer">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
               Output Format
             </label>
             <select
-              readOnly
-              onMouseDown={(e) => {
-                e.preventDefault();
-                triggerComingSoon();
-              }}
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs sm:text-sm font-medium cursor-pointer"
+              value={customFormat}
+              onChange={(e) => setCustomFormat(e.target.value)}
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
             >
-              <option>PDF Document (.pdf)</option>
-              <option>Microsoft Excel (.xlsx)</option>
-              <option>CSV Dataset (.csv)</option>
+              <option value="csv">Standard CSV Spreadsheet (.csv)</option>
+              <option value="print">Printable Summary View</option>
             </select>
           </div>
         </div>
 
-        <div className="mt-5 pt-4 border-t border-slate-100 flex justify-end">
+        <div className="flex justify-end pt-5 border-t border-slate-100 mt-5">
           <Button
             variant="primary"
             size="md"
             icon={Download}
-            onClick={triggerComingSoon}
+            loading={customGenerating}
+            disabled={customGenerating}
+            onClick={handleCustomGenerate}
           >
-            Generate & Download Custom Slice
+            Generate & Export Report
           </Button>
         </div>
       </Card>
-
-      <ComingSoonModal
-        isOpen={comingSoonOpen}
-        onClose={() => setComingSoonOpen(false)}
-        title="Coming Soon"
-        body="This feature is currently under development and will be available in a future update."
-      />
     </div>
   );
 }

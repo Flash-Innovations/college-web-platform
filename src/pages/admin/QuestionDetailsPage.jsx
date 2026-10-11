@@ -354,7 +354,7 @@ export function QuestionDetailsPage() {
             </div>
 
             <div className="text-sm text-slate-700 leading-relaxed">
-              <ProblemStatement statement={selectedVersion.statement} />
+              <ProblemStatement statement={selectedVersion.statement} question={{ ...question, statement: selectedVersion.statement }} />
             </div>
 
             {codingProblem.constraints && (
@@ -489,7 +489,7 @@ export function QuestionDetailsPage() {
             </div>
 
             <div className="text-sm text-slate-800 leading-relaxed">
-              <ProblemStatement statement={selectedVersion.statement} />
+              <ProblemStatement statement={selectedVersion.statement} question={{ ...question, statement: selectedVersion.statement }} />
             </div>
 
             {/* Options List */}

@@ -507,6 +507,8 @@ export function QuestionListPage() {
               <option value="ORIGINAL">Original (SIPS)</option>
               <option value="CURATED">Curated</option>
               <option value="COLLEGE_CREATED">College Created</option>
+              <option value="COLLEGE_PROVIDED">College Provided</option>
+              <option value="COMPANY_PROVIDED">Company Provided</option>
               <option value="PUBLIC_SOURCE">Public Source</option>
               <option value="THIRD_PARTY">Third Party</option>
             </select>
@@ -599,8 +601,15 @@ export function QuestionListPage() {
                       <div className="font-mono text-xs font-bold text-slate-900">
                         {q.externalId || q.id.slice(0, 10)}
                       </div>
-                      <div className="text-[11px] text-slate-400 font-mono">
-                        {q.sourceNamespace || "sips-core"}
+                      <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          {q.sourceNamespace || "sips-core"}
+                        </span>
+                        {q.sourceType && (
+                          <span className="text-[10px] px-1.5 py-0.2 rounded font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                            {q.sourceType}
+                          </span>
+                        )}
                       </div>
                     </td>
 
@@ -617,6 +626,11 @@ export function QuestionListPage() {
                         <span className="text-xs text-slate-500 font-medium">
                           {q.category}
                         </span>
+                        {q.category === "DATA_INTERPRETATION" && (
+                          <span className="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-violet-50 text-violet-700 border border-violet-200">
+                            📊 Chart Exhibit
+                          </span>
+                        )}
                         {q.subcategory && (
                           <span className="text-xs text-slate-400">
                             • {q.subcategory}
