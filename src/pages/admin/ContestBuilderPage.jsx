@@ -170,8 +170,13 @@ export function ContestBuilderPage() {
     e.preventDefault();
     if (!selectedBankQuestion) return;
 
-    const latestVersion = selectedBankQuestion.versions?.[0];
-    const versionId = latestVersion?.id || selectedBankQuestion.versionId;
+    let versionId = selectedBankQuestion.versionId || selectedBankQuestion.latestVersionId || selectedBankQuestion.activeVersionId || selectedBankQuestion.versions?.[0]?.id;
+    if (!versionId && selectedBankQuestion.id) {
+      try {
+        const qDetail = await practiceService.getAdminQuestionById(selectedBankQuestion.id);
+        versionId = qDetail?.latestVersion?.id || qDetail?.versions?.[0]?.id;
+      } catch (_) {}
+    }
 
     if (!versionId) {
       addToast({ type: "error", message: "Question version reference not found." });
@@ -220,20 +225,31 @@ export function ContestBuilderPage() {
     for (let i = 0; i < selectedBankQuestionIds.length; i++) {
       const qId = selectedBankQuestionIds[i];
       const q = bankQuestions.find(item => item.id === qId);
-      const versionId = q?.versions?.[0]?.id || q?.versionId;
+      let versionId = q?.versionId || q?.latestVersionId || q?.activeVersionId || q?.versions?.[0]?.id;
+
+      if (!versionId && qId) {
+        try {
+          const qDetail = await practiceService.getAdminQuestionById(qId);
+          versionId = qDetail?.latestVersion?.id || qDetail?.versions?.[0]?.id;
+        } catch (_) {}
+      }
 
       if (versionId) {
         try {
+          // Align section strictly to question type
+          const targetSection = q?.type === 'CODING' ? 'CODING' : (q?.type === 'APTITUDE' ? 'APTITUDE' : 'TECHNICAL');
           await practiceService.addContestQuestion(contestId, {
             questionVersionId: versionId,
-            section: activeSection,
-            marks: activeSection === "CODING" ? 10.0 : 2.0,
+            section: targetSection,
+            marks: targetSection === "CODING" ? 10.0 : 2.0,
             negativeMarks: 0.0
           });
           addedCount++;
         } catch (_) {
           failedCount++;
         }
+      } else {
+        failedCount++;
       }
       setBatchProgress({ current: i + 1, total: selectedBankQuestionIds.length });
     }
@@ -246,7 +262,7 @@ export function ContestBuilderPage() {
       addToast({
         type: "success",
         title: "Batch Addition Completed",
-        message: `Added ${addedCount} questions to ${activeSection} section.${failedCount > 0 ? ` (${failedCount} skipped or already added)` : ""}`
+        message: `Added ${addedCount} questions to contest.${failedCount > 0 ? ` (${failedCount} skipped or already added)` : ""}`
       });
       fetchContest();
     } else {
@@ -887,6 +903,12 @@ export function ContestBuilderPage() {
                           size="sm"
                           onClick={() => {
                             setSelectedBankQuestion(q);
+                            const defaultSec = q.type === "CODING" ? "CODING" : (q.type === "APTITUDE" ? "APTITUDE" : "TECHNICAL");
+                            setAddPayload({
+                              section: defaultSec,
+                              marks: defaultSec === "CODING" ? 10.0 : 2.0,
+                              negativeMarks: 0.0
+                            });
                           }}
                           className="text-xs"
                         >
@@ -941,7 +963,7 @@ export function ContestBuilderPage() {
           <form onSubmit={handleAddQuestion} className="space-y-4 text-xs">
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
               <span className="font-bold text-slate-900 block text-sm mb-1">
-                {selectedBankQuestion.versions?.[0]?.title || selectedBankQuestion.versions?.[0]?.statement || "Selected Problem"}
+                {selectedBankQuestion.title || selectedBankQuestion.versions?.[0]?.title || selectedBankQuestion.versions?.[0]?.statement || "Selected Problem"}
               </span>
               <span className="text-slate-500 text-xs">
                 Difficulty: {selectedBankQuestion.difficulty} • Type: {selectedBankQuestion.type}
