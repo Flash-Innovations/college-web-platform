@@ -79,6 +79,8 @@ export function BranchesPage() {
   const isCentralTpo = (user?.role === "placement" || user?.role === "tpo" || window.location.pathname.startsWith("/placement") || window.location.pathname.startsWith("/tpo")) &&
     (!user?.departmentName || user?.departmentName?.toLowerCase().includes("placement") || user?.departmentName?.toLowerCase().includes("tpo") || user?.name?.toLowerCase().includes("placement") || user?.name?.toLowerCase().includes("tpo") || user?.backendRole === "COLLEGE_ADMIN");
 
+  const isBranchAdmin = user?.role === "branch_admin" || Boolean(user?.branchName) || window.location.pathname.startsWith("/branch");
+
   const [availableDepartments, setAvailableDepartments] = useState([]);
   const [selectedDeptId, setSelectedDeptId] = useState(user?.departmentId || user?.id || "");
   const activeDeptId = selectedDeptId || user?.departmentId || user?.id;
@@ -103,6 +105,11 @@ export function BranchesPage() {
   };
 
   useEffect(() => {
+    if (isBranchAdmin) {
+      showWarning("Branch coordinators cannot manage other branches.");
+      return;
+    }
+
     async function init() {
       let deptId = user?.departmentId || user?.id;
       try {
@@ -300,6 +307,23 @@ export function BranchesPage() {
       (b.coordinatorName && b.coordinatorName.toLowerCase().includes(q))
     );
   });
+
+  if (isBranchAdmin) {
+    return (
+      <div className="p-8 max-w-lg mx-auto text-center space-y-4">
+        <div className="w-14 h-14 mx-auto rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900">Branch Management Restricted</h2>
+        <p className="text-sm text-slate-600">
+          Branch coordinators are scoped to their own branch and do not have permission to manage other child branches.
+        </p>
+        <Button onClick={() => window.location.href = "/branch/dashboard"}>
+          Return to Dashboard
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
