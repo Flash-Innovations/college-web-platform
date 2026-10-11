@@ -163,6 +163,7 @@ export function AssessmentListPage() {
         description: newAssessment.description?.trim() || "",
         type: resolvedType || "MOCK_ASSESSMENT",
         durationMinutes: parseInt(newAssessment.durationMinutes, 10) || 60,
+        collegeId: user?.collegeId || user?.departmentId || null,
         branchIds: resolvedBranches,
         sipsDriveId: newAssessment.sipsDriveId?.trim() || null
       };
@@ -204,6 +205,41 @@ export function AssessmentListPage() {
       }
     } finally {
       setCreateLoading(false);
+    }
+  };
+
+  const handlePublishAssessment = async (assessmentItem) => {
+    if (!assessmentItem.questionCount || assessmentItem.questionCount === 0) {
+      if (addToast) {
+        addToast({
+          type: "warning",
+          title: "Questions Required",
+          message: "Please open the builder and add at least 1 question before publishing so students can take the assessment."
+        });
+      }
+      navigate(`${basePath}/assessments/${assessmentItem.id}`);
+      return;
+    }
+
+    try {
+      await practiceService.publishAssessment(assessmentItem.id);
+      if (addToast) {
+        addToast({
+          type: "success",
+          title: "Assessment Published",
+          message: `Assessment '${assessmentItem.title}' is now live and visible to students.`
+        });
+      }
+      fetchAssessments();
+    } catch (err) {
+      console.error("Failed to publish assessment:", err);
+      if (addToast) {
+        addToast({
+          type: "error",
+          title: "Publish Failed",
+          message: err.message || "Failed to publish assessment."
+        });
+      }
     }
   };
 
@@ -492,6 +528,18 @@ export function AssessmentListPage() {
                     {/* Actions */}
                     <td className="px-5 py-4 align-middle text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {a.status === "DRAFT" && (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => handlePublishAssessment(a)}
+                            className="text-xs flex items-center gap-1.5 shadow-sm"
+                            title="Make assessment live and visible to students"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Publish</span>
+                          </Button>
+                        )}
                         {a.status === "PUBLISHED" && (
                           <Button
                             variant="secondary"
@@ -504,7 +552,7 @@ export function AssessmentListPage() {
                           </Button>
                         )}
                         <Button
-                          variant={a.status === "DRAFT" ? "primary" : "outline"}
+                          variant={a.status === "DRAFT" ? "outline" : "outline"}
                           size="sm"
                           onClick={() => navigate(`${basePath}/assessments/${a.id}`)}
                           className="text-xs"
@@ -708,6 +756,16 @@ export function AssessmentListPage() {
               </p>
             </div>
           )}
+
+          <div className="p-3 bg-indigo-50/70 border border-indigo-100 rounded-xl text-xs text-indigo-900 flex items-start gap-2">
+            <Sparkles className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-semibold block text-indigo-950">Draft-to-Publish Workflow:</span>
+              <span className="text-indigo-800/90">
+                New blueprints start as drafts so you can assemble and verify questions. Once questions are ready, click <strong>Publish</strong> to instantly make the assessment live and accessible to students.
+              </span>
+            </div>
+          </div>
 
           <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
             <Button
