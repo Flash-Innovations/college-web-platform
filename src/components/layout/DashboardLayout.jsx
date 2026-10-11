@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopNavbar } from "./TopNavbar";
 import { cn } from "../../utils/cn";
+import { ErrorBoundary } from "../common/ErrorBoundary";
 
 export function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -28,7 +29,9 @@ export function DashboardLayout() {
         <TopNavbar onMenuClick={() => setMobileOpen(true)} />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

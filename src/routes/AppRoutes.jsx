@@ -6,7 +6,7 @@ import { DashboardLayout } from "../components/layout/DashboardLayout";
 
 // Helper for dynamic named imports with React.lazy
 const lazyNamed = (importFn, name) =>
-  lazy(() => importFn().then((module) => ({ default: module[name] })));
+  lazy(() => importFn().then((module) => ({ default: module[name] || module.default || module })));
 
 // Eagerly loaded public entry pages
 import { LoginPage } from "../pages/auth/LoginPage";
