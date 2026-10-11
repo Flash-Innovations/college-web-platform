@@ -100,6 +100,8 @@ export function AppRoutes() {
             <Route path="/institution/profile" element={<UniversityProfilePage />} />
             <Route path="/institution/reports" element={<PlacementReportsPage />} />
             <Route path="/institution/analytics" element={<PlacementAnalyticsPage />} />
+            <Route path="/institution/jobs" element={<JobDescriptionsPage />} />
+            <Route path="/institution/job-descriptions" element={<JobDescriptionsPage />} />
             <Route path="/institution/assessments" element={<AssessmentListPage />} />
             <Route path="/institution/assessments/:assessmentId" element={<AssessmentBuilderPage />} />
             <Route path="/institution/assessments/:assessmentId/results" element={<AssessmentResultsPage />} />
@@ -144,6 +146,8 @@ export function AppRoutes() {
             <Route path="/admin/questions/:questionId" element={<QuestionDetailsPage />} />
             <Route path="/admin/users" element={<AdminUserManagementPage />} />
             <Route path="/admin/analytics" element={<PlacementAnalyticsPage />} />
+            <Route path="/admin/jobs" element={<JobDescriptionsPage />} />
+            <Route path="/admin/job-descriptions" element={<JobDescriptionsPage />} />
             <Route path="/admin/settings" element={<AdminSettingsPage />} />
             <Route path="/admin/profile" element={<DepartmentProfilePage />} />
             <Route path="/admin/college-profile" element={<CollegeProfilePage />} />

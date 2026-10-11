@@ -36,17 +36,19 @@ export function JobDescriptionsPage() {
   const { user, role } = useAuth();
   const { showSuccess, showError, showWarning, showInfo } = useNotifications();
 
-  // Role permissions: Department & Branch admins inspect matching & applicants, but cannot create or delete institutional JDs
-  const isDeptOrProgram = Boolean(
-    user?.departmentName ||
-    user?.departmentId ||
-    user?.backendRole === "DEPARTMENT_ADMIN" ||
-    user?.backendRole === "BRANCH_ADMIN" ||
-    role === "department_admin" ||
-    role === "branch_admin" ||
-    (user?.role === "placement" && user?.name && !user.name.toLowerCase().includes("universal") && !user.name.toLowerCase().includes("central tpo"))
-  );
-  const canManageJds = !isDeptOrProgram && (role === "placement" || role === "university_admin" || role === "super_admin");
+  // Role permissions: Only Central TPO has permission to create and delete JDs.
+  // Academic Departments, Branches, and College/University Admins can inspect drives, matches, and applicant records in read-only mode.
+  const isBranchAdmin = role === "branch_admin" || user?.backendRole === "BRANCH_ADMIN";
+  const isDeptAdmin = role === "department_admin" || user?.backendRole === "DEPARTMENT_ADMIN";
+  const isUniversityAdmin = role === "university_admin" || user?.backendRole === "MAIN_UNIVERSITY_ADMIN";
+
+  const isCentralTpo =
+    !isBranchAdmin &&
+    !isDeptAdmin &&
+    !isUniversityAdmin &&
+    (role === "placement" || user?.role === "placement" || user?.backendRole === "COLLEGE_ADMIN" || role === "super_admin");
+
+  const canManageJds = Boolean(isCentralTpo);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState(null);

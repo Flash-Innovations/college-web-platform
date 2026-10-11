@@ -56,6 +56,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
   const universityAdminLinks = [
     { to: "/institution/dashboard", label: "College Overview", icon: LayoutDashboard },
     { to: "/institution/departments", label: "Programs & Branches", icon: Building2, badge: "Units" },
+    { to: "/institution/jobs", label: "Job Drives & Openings", icon: Briefcase, badge: "Drives" },
     { to: "/institution/subjects", label: "Curriculum & Subjects", icon: GraduationCap },
     { to: "/institution/questions", label: "Question Bank", icon: BookOpen },
     { to: "/institution/analytics", label: "Institutional Analytics", icon: BarChart3 },
@@ -112,6 +113,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
     { to: "/admin/dashboard", label: "Program Overview", icon: LayoutDashboard },
     { to: "/admin/branches", label: "Branch Management", icon: Building2, badge: "Branches" },
     { to: "/admin/students", label: "Program Students", icon: Users },
+    { to: "/admin/jobs", label: "Job Drives & Openings", icon: Briefcase, badge: "Drives" },
     { to: "/admin/subjects", label: "Curriculum & Subjects", icon: GraduationCap },
     { to: "/admin/assessments", label: "Assessments", icon: Layers },
     { to: "/admin/questions", label: "Question Bank", icon: BookOpen },
