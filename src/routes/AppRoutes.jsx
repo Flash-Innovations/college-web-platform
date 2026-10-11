@@ -206,8 +206,6 @@ export function AppRoutes() {
         <Route element={<ProtectedRoute allowedRoles={["branch_admin", "super_admin"]} />}>
           <Route element={<DashboardLayout />}>
             <Route path="/branch/dashboard" element={<AdminDashboard />} />
-            <Route path="/branch/branches" element={<BranchesPage />} />
-            <Route path="/branch/departments" element={<BranchesPage />} />
             <Route path="/branch/students" element={<StudentManagementPage />} />
             <Route path="/branch/jobs" element={<JobDescriptionsPage />} />
             <Route path="/branch/job-descriptions" element={<JobDescriptionsPage />} />
