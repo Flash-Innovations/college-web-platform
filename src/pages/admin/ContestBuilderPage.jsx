@@ -85,6 +85,23 @@ export function ContestBuilderPage() {
   const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [publishLoading, setPublishLoading] = useState(false);
 
+  // Delete Modal State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleDeleteContest = async () => {
+    setDeleteLoading(true);
+    try {
+      await practiceService.deleteContest(contestId);
+      addToast("Contest deleted successfully", "success");
+      navigate(`${basePath}/contests`);
+    } catch (err) {
+      addToast(err?.message || "Failed to delete contest", "error");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   // Fetch Contest Details
   const fetchContest = useCallback(async () => {
     if (!contestId || contestId === "undefined") {
@@ -448,6 +465,16 @@ export function ContestBuilderPage() {
               <span>Configuration Locked</span>
             </div>
           )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDeleteModalOpen(true)}
+            className="flex items-center gap-1.5 text-xs font-semibold text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Delete Contest</span>
+          </Button>
         </div>
       </div>
 
@@ -1086,7 +1113,50 @@ export function ContestBuilderPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Delete Contest Modal */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => !deleteLoading && setDeleteModalOpen(false)}
+        title="Delete Contest"
+      >
+        <div className="space-y-4">
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-rose-900">Are you sure you want to permanently delete this contest?</p>
+              <p className="mt-1 text-rose-600 leading-relaxed">
+                This will delete <strong className="text-rose-950 font-bold">"{contest?.title}"</strong>, including all pinned questions, submissions, and student attempts. This action cannot be undone.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={deleteLoading}
+              onClick={() => setDeleteModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              disabled={deleteLoading}
+              onClick={handleDeleteContest}
+              className="bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{deleteLoading ? "Deleting..." : "Permanently Delete"}</span>
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
 export default ContestBuilderPage;
+

@@ -909,6 +909,13 @@ export const practiceService = {
     return res?.data || res;
   },
 
+  async deleteContest(contestId) {
+    if (!contestId) throw new Error('Contest ID is required');
+    const res = await practiceApi.delete(`/api/contests/${contestId}`);
+    invalidateCache('contests');
+    return res?.data || res;
+  },
+
   async getAdminContestLeaderboard(contestId, params = {}) {
     const query = new URLSearchParams();
     if (params.page) query.set('page', params.page);

@@ -24,7 +24,8 @@ import {
   Users,
   Timer,
   XCircle,
-  ExternalLink
+  ExternalLink,
+  Trash2
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { practiceService } from "../../services/practiceService";
@@ -77,6 +78,25 @@ export function ContestListPage() {
     durationMinutes: 90,
     sipsDriveId: ""
   });
+
+  // Delete Modal State
+  const [deleteModalContest, setDeleteModalContest] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleDeleteContest = async () => {
+    if (!deleteModalContest) return;
+    setDeleteLoading(true);
+    try {
+      await practiceService.deleteContest(deleteModalContest.id);
+      addToast("Contest deleted successfully", "success");
+      setDeleteModalContest(null);
+      fetchContests();
+    } catch (err) {
+      addToast(err?.message || "Failed to delete contest", "error");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   useEffect(() => {
     placementService.getJobs()
@@ -498,7 +518,22 @@ export function ContestListPage() {
                     <Users className="w-3 h-3" /> {attemptsCount} {attemptsCount === 1 ? "student" : "students"}
                   </span>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
+                    {canCreate && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteModalContest(c);
+                        }}
+                        className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200 p-2"
+                        title="Delete Contest"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+
                     {c.status !== "DRAFT" && (
                       <Button
                         variant="outline"
@@ -769,7 +804,50 @@ export function ContestListPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={Boolean(deleteModalContest)}
+        onClose={() => !deleteLoading && setDeleteModalContest(null)}
+        title="Delete Contest"
+      >
+        <div className="space-y-4">
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-rose-900">Are you sure you want to permanently delete this contest?</p>
+              <p className="mt-1 text-rose-600 leading-relaxed">
+                This will delete <strong className="text-rose-950 font-bold">"{deleteModalContest?.title}"</strong>, including all pinned questions, submissions, and student attempts. This action cannot be undone.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={deleteLoading}
+              onClick={() => setDeleteModalContest(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              disabled={deleteLoading}
+              onClick={handleDeleteContest}
+              className="bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{deleteLoading ? "Deleting..." : "Permanently Delete"}</span>
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
 export default ContestListPage;
+
