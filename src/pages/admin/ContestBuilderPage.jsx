@@ -29,7 +29,8 @@ import {
   ArrowUp,
   ArrowDown,
   ExternalLink,
-  X
+  X,
+  Building
 } from "lucide-react";
 import { practiceService } from "../../services/practiceService";
 import { placementService } from "../../services/placementService";
