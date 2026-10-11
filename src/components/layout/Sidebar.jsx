@@ -33,12 +33,23 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
   const { user, role, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Detect if current session belongs to an autonomous Program / Department placement cell
-  const isDeptOrProgram = Boolean(
-    user?.departmentName ||
-    user?.departmentId ||
+  // Central T&P (TPO) check:
+  // Can be COLLEGE_ADMIN or a dedicated T&P Department account (name contains "Placement" / "TPO", code "TPO", or username "*_tpo")
+  const isTpo = Boolean(
+    user?.departmentCode === "TPO" ||
+    user?.username?.endsWith("_tpo") ||
+    user?.backendRole === "COLLEGE_ADMIN" ||
+    user?.name?.toLowerCase().includes("placement") ||
+    user?.name?.toLowerCase().includes("tpo") ||
+    user?.departmentName?.toLowerCase().includes("placement") ||
+    user?.departmentName?.toLowerCase().includes("tpo") ||
+    (role === "placement" && !user?.backendRole?.includes("DEPARTMENT"))
+  );
+
+  // Detect if current session belongs to an autonomous Program / Department placement cell (NOT Central TPO)
+  const isDeptOrProgram = !isTpo && Boolean(
     user?.backendRole === "DEPARTMENT_ADMIN" ||
-    (user?.role === "placement" && user?.name && !user.name.toLowerCase().includes("universal") && !user.name.toLowerCase().includes("central tpo"))
+    role === "department_admin"
   );
 
   const deptOrProgramName =
@@ -69,12 +80,6 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
       to: "/placement/dashboard",
       label: isDeptOrProgram ? "Program Overview" : "T&P Overview",
       icon: LayoutDashboard
-    },
-    {
-      to: "/placement/branches",
-      label: "Branch Management",
-      icon: Building2,
-      badge: "Branches"
     },
     {
       to: "/placement/students",
@@ -146,10 +151,10 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
       ? (user?.institutionName ? `${user.institutionName}` : "University Admin Portal")
       : isBranchAdmin
       ? `${user?.branchName || "Branch"} Portal`
+      : isTpo
+      ? "Training & Placement Cell"
       : isDeptOrProgram
       ? `${deptOrProgramName}`
-      : role === "placement"
-      ? "Training & Placement Cell"
       : "Department Portal";
 
   // Subtitle / Subtext for user card at bottom
@@ -158,6 +163,8 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
       ? "University Administrator"
       : isBranchAdmin
       ? (user?.branchCode ? `${user.branchCode} Coordinator` : "Branch Coordinator")
+      : isTpo
+      ? "Training & Placement Officer"
       : isDeptOrProgram
       ? (user?.departmentCode ? `${user.departmentCode} Placement Cell` : "Program Placement Unit")
       : role === "placement"
