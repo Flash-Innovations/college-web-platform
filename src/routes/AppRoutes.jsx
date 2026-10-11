@@ -203,7 +203,7 @@ export function AppRoutes() {
         {/* ========================================================================= */}
         {/* 4. BRANCH COORDINATOR WORKSPACE (/branch)                                 */}
         {/* ========================================================================= */}
-        <Route element={<ProtectedRoute allowedRoles={["branch_admin", "super_admin"]} />}>
+        <Route element={<ProtectedRoute allowedRoles={["branch_admin", "department_admin", "admin", "super_admin"]} />}>
           <Route element={<DashboardLayout />}>
             <Route path="/branch/dashboard" element={<AdminDashboard />} />
             <Route path="/branch/students" element={<StudentManagementPage />} />

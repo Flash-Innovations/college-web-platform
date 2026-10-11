@@ -36,11 +36,11 @@ export function AssessmentListPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const basePath = location.pathname.startsWith("/placement") ? "/placement" : location.pathname.startsWith("/institution") ? "/institution" : location.pathname.startsWith("/tpo") ? "/tpo" : location.pathname.startsWith("/branch") ? "/branch" : "/dept";
+  const isBranchAdmin = user?.role === "branch_admin" || Boolean(user?.branchName) || Boolean(user?.branchId) || user?.backendRole === "BRANCH_ADMIN" || location.pathname.startsWith("/branch");
+  const basePath = location.pathname.startsWith("/placement") ? "/placement" : location.pathname.startsWith("/institution") ? "/institution" : location.pathname.startsWith("/tpo") ? "/tpo" : (location.pathname.startsWith("/branch") || isBranchAdmin) ? "/branch" : "/dept";
   const { addToast } = useNotifications();
 
   // Role permissions
-  const isBranchAdmin = user?.role === "branch_admin" || Boolean(user?.branchName);
   const isTpo = (user?.role === "tpo" || user?.role === "placement") ||
     Boolean(user?.departmentName?.toLowerCase().includes("tpo") || user?.departmentName?.toLowerCase().includes("placement") || user?.name?.toLowerCase().includes("tpo") || user?.name?.toLowerCase().includes("placement"));
   const canCreate = !isTpo;

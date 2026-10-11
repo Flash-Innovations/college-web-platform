@@ -20,6 +20,9 @@ export function AuthProvider({ children }) {
 
   const [role, setRole] = useState(() => {
     if (!user) return null;
+    if (user.role === "branch_admin" || Boolean(user.branchId) || Boolean(user.branchName) || user.backendRole === "BRANCH_ADMIN") {
+      return "branch_admin";
+    }
     if (user.role === "placement") {
       const isTpo = Boolean(
         user.departmentCode === "TPO" ||
@@ -39,7 +42,10 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (user && localStorage.getItem("sips_token")) {
       localStorage.setItem("sips_auth_user", JSON.stringify(user));
-      setRole(user.role);
+      const resolvedRole = (user.role === "branch_admin" || Boolean(user.branchId) || Boolean(user.branchName) || user.backendRole === "BRANCH_ADMIN")
+        ? "branch_admin"
+        : user.role;
+      setRole(resolvedRole);
 
       // Long-term optimized pre-warming: Wake up Practice Platform backend only when an authenticated user session is active
       try {
@@ -122,7 +128,7 @@ export function AuthProvider({ children }) {
         logoUrl: data.logoUrl || null,
         status: "Active"
       };
-    } else if (data.role === "BRANCH_ADMIN") {
+    } else if (data.role === "BRANCH_ADMIN" || Boolean(data.branchId) || Boolean(data.branchName)) {
       mappedRole = "branch_admin";
       userData = {
         id: data.userId || data.branchId,
