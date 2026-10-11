@@ -23,6 +23,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { institutionService } from "../../services/institutionService";
+import { placementService } from "../../services/placementService";
 import { Card, CardHeader } from "../../components/common/Card";
 import { Button } from "../../components/common/Button";
 import { Badge } from "../../components/common/Badge";
@@ -62,9 +63,10 @@ export function DepartmentProfilePage() {
   const loadProfile = async () => {
     try {
       setLoading(true);
-      const [res, branchesRes] = await Promise.all([
+      const [res, branchesRes, studentsList] = await Promise.all([
         institutionService.getDepartmentOwnProfile().catch(() => ({})),
-        isDeptOrProgram ? institutionService.getDepartmentBranches().catch(() => []) : Promise.resolve([])
+        isDeptOrProgram ? institutionService.getDepartmentBranches().catch(() => []) : Promise.resolve([]),
+        placementService.getStudents().catch(() => [])
       ]);
 
       const dept = res.department || {};
@@ -82,10 +84,30 @@ export function DepartmentProfilePage() {
         websiteUrl: dept.websiteUrl || ""
       });
 
+      // Compute actual student count for this branch/program
+      let verifiedCount = 0;
+      if (typeof dept.studentCount === "number" && dept.studentCount > 0) {
+        verifiedCount = dept.studentCount;
+      } else if (Array.isArray(studentsList) && studentsList.length > 0) {
+        if (isBranch) {
+          const currentBranchName = (dept.name || user?.branchName || "").toLowerCase();
+          const currentBranchCode = (dept.code || user?.branchCode || "").toLowerCase();
+          const filtered = studentsList.filter((s) => {
+            const b = (s.branch || "").toLowerCase();
+            return b === currentBranchName || b === currentBranchCode || b.includes(currentBranchCode);
+          });
+          verifiedCount = filtered.length > 0 ? filtered.length : studentsList.length;
+        } else {
+          verifiedCount = studentsList.length;
+        }
+      } else if (typeof dept.studentCount === "number") {
+        verifiedCount = dept.studentCount;
+      }
+
       setStats({
-        totalStudents: dept.studentCount || (branchList.length * 60) || 120,
+        totalStudents: verifiedCount,
         totalBranches: branchList.length || (isBranch ? 1 : 4),
-        placedStudents: dept.placedCount || 0
+        placedStudents: typeof dept.placedCount === "number" ? dept.placedCount : 0
       });
     } catch (err) {
       console.error("Failed to load profile:", err);
@@ -187,7 +209,7 @@ export function DepartmentProfilePage() {
               size="sm"
               icon={RefreshCw}
               onClick={loadProfile}
-              className="border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-white"
+              className="bg-slate-800/80 hover:bg-slate-700/90 text-indigo-200 border-indigo-500/40 hover:border-indigo-400 hover:text-white shadow-sm transition-all"
             >
               Refresh
             </Button>
