@@ -846,6 +846,73 @@ export const practiceService = {
     const qs = query.toString();
     const res = await practiceApi.get(`/api/practice/student/curriculum${qs ? `?${qs}` : ''}`);
     return res?.data || res;
+  },
+
+  // ==========================================
+  // CONTEST MANAGEMENT & ASSEMBLY (Admin Studio)
+  // ==========================================
+  async getAdminContests(params = {}) {
+    const query = new URLSearchParams();
+    if (params.status && params.status !== 'ALL') query.set('status', params.status);
+    if (params.search) query.set('search', params.search);
+    if (params.departmentId) query.set('departmentId', params.departmentId);
+    if (params.branchId) query.set('branchId', params.branchId);
+    if (params.sipsDriveId) query.set('sipsDriveId', params.sipsDriveId);
+    if (params.limit) query.set('limit', params.limit);
+    if (params.offset) query.set('offset', params.offset);
+
+    const qs = query.toString();
+    const res = await practiceApi.get(`/api/contests${qs ? `?${qs}` : ''}`);
+    return res?.data || res;
+  },
+
+  async getContestById(contestId) {
+    if (!contestId) throw new Error('Contest ID is required');
+    const res = await practiceApi.get(`/api/contests/${contestId}`);
+    return res?.data || res;
+  },
+
+  async createContest(data) {
+    const res = await practiceApi.post('/api/contests', data);
+    invalidateCache('contests');
+    return res?.data || res;
+  },
+
+  async addContestQuestion(contestId, data) {
+    const res = await practiceApi.post(`/api/contests/${contestId}/questions`, data);
+    return res?.data || res;
+  },
+
+  async removeContestQuestion(contestId, contestQuestionId) {
+    const res = await practiceApi.delete(`/api/contests/${contestId}/questions/${contestQuestionId}`);
+    return res?.data || res;
+  },
+
+  async reorderContestQuestions(contestId, data) {
+    const res = await practiceApi.post(`/api/contests/${contestId}/questions/reorder`, data);
+    return res?.data || res;
+  },
+
+  async publishContest(contestId) {
+    const res = await practiceApi.post(`/api/contests/${contestId}/publish`);
+    invalidateCache('contests');
+    return res?.data || res;
+  },
+
+  async cancelContest(contestId) {
+    const res = await practiceApi.post(`/api/contests/${contestId}/cancel`);
+    invalidateCache('contests');
+    return res?.data || res;
+  },
+
+  async getAdminContestLeaderboard(contestId, params = {}) {
+    const query = new URLSearchParams();
+    if (params.page) query.set('page', params.page);
+    if (params.limit) query.set('limit', params.limit);
+
+    const qs = query.toString();
+    const res = await practiceApi.get(`/api/contests/${contestId}/admin-leaderboard${qs ? `?${qs}` : ''}`);
+    return res?.data || res;
   }
 };
 

@@ -23,7 +23,8 @@ import {
   Zap,
   BookOpen,
   Code2,
-  Layers
+  Layers,
+  Trophy
 } from "lucide-react";
 import Avatar from "../common/Avatar";
 import { useAuth } from "../../context/AuthContext";
@@ -117,6 +118,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
     { to: "/dept/jobs", label: "Job Drives & Openings", icon: Briefcase, badge: "Drives" },
     { to: "/dept/subjects", label: "Curriculum & Subjects", icon: GraduationCap },
     { to: "/dept/assessments", label: "Assessments", icon: Layers },
+    { to: "/dept/contests", label: "Contests & Hackathons", icon: Trophy, badge: "Live" },
     { to: "/dept/questions", label: "Question Bank", icon: BookOpen },
     { to: "/dept/reports", label: "Accreditation & Reports", icon: FileSpreadsheet, badge: "Export" },
     { to: "/dept/profile", label: "Program Profile", icon: Settings }
@@ -128,6 +130,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
     { to: "/branch/jobs", label: "Job Drives & Openings", icon: Briefcase, badge: "Drives" },
     { to: "/branch/subjects", label: "Curriculum & Subjects", icon: GraduationCap },
     { to: "/branch/assessments", label: "Assessments", icon: Layers },
+    { to: "/branch/contests", label: "Contests & Hackathons", icon: Trophy, badge: "Live" },
     { to: "/branch/questions", label: "Question Bank", icon: BookOpen },
     { to: "/branch/reports", label: "Accreditation & Reports", icon: FileSpreadsheet, badge: "Export" },
     { to: "/branch/profile", label: "Branch Profile", icon: Settings }

@@ -44,6 +44,9 @@ const SubjectsPage = lazyNamed(() => import("../pages/admin/SubjectsPage"), "Sub
 const AssessmentListPage = lazyNamed(() => import("../pages/admin/AssessmentListPage"), "AssessmentListPage");
 const AssessmentBuilderPage = lazyNamed(() => import("../pages/admin/AssessmentBuilderPage"), "AssessmentBuilderPage");
 const AssessmentResultsPage = lazyNamed(() => import("../pages/admin/AssessmentResultsPage"), "AssessmentResultsPage");
+const ContestListPage = lazyNamed(() => import("../pages/admin/ContestListPage"), "ContestListPage");
+const ContestBuilderPage = lazyNamed(() => import("../pages/admin/ContestBuilderPage"), "ContestBuilderPage");
+const ContestLeaderboardPage = lazyNamed(() => import("../pages/admin/ContestLeaderboardPage"), "ContestLeaderboardPage");
 
 import { PageSkeleton } from "../components/common/LoadingSkeleton";
 
@@ -159,6 +162,9 @@ export function AppRoutes() {
             <Route path="/dept/assessments" element={<AssessmentListPage />} />
             <Route path="/dept/assessments/:assessmentId" element={<AssessmentBuilderPage />} />
             <Route path="/dept/assessments/:assessmentId/results" element={<AssessmentResultsPage />} />
+            <Route path="/dept/contests" element={<ContestListPage />} />
+            <Route path="/dept/contests/:contestId" element={<ContestBuilderPage />} />
+            <Route path="/dept/contests/:contestId/leaderboard" element={<ContestLeaderboardPage />} />
             <Route path="/dept/subjects" element={<SubjectsPage />} />
             <Route path="/dept/questions" element={<QuestionListPage />} />
             <Route path="/dept/questions/:questionId" element={<QuestionDetailsPage />} />
@@ -178,6 +184,9 @@ export function AppRoutes() {
             <Route path="/admin/assessments" element={<AssessmentListPage />} />
             <Route path="/admin/assessments/:assessmentId" element={<AssessmentBuilderPage />} />
             <Route path="/admin/assessments/:assessmentId/results" element={<AssessmentResultsPage />} />
+            <Route path="/admin/contests" element={<ContestListPage />} />
+            <Route path="/admin/contests/:contestId" element={<ContestBuilderPage />} />
+            <Route path="/admin/contests/:contestId/leaderboard" element={<ContestLeaderboardPage />} />
             <Route path="/admin/subjects" element={<SubjectsPage />} />
             <Route path="/admin/questions" element={<QuestionListPage />} />
             <Route path="/admin/questions/:questionId" element={<QuestionDetailsPage />} />
@@ -204,6 +213,9 @@ export function AppRoutes() {
             <Route path="/branch/assessments" element={<AssessmentListPage />} />
             <Route path="/branch/assessments/:assessmentId" element={<AssessmentBuilderPage />} />
             <Route path="/branch/assessments/:assessmentId/results" element={<AssessmentResultsPage />} />
+            <Route path="/branch/contests" element={<ContestListPage />} />
+            <Route path="/branch/contests/:contestId" element={<ContestBuilderPage />} />
+            <Route path="/branch/contests/:contestId/leaderboard" element={<ContestLeaderboardPage />} />
             <Route path="/branch/questions" element={<QuestionListPage />} />
             <Route path="/branch/questions/:questionId" element={<QuestionDetailsPage />} />
             <Route path="/branch/reports" element={<PlacementReportsPage />} />
