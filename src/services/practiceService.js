@@ -456,6 +456,10 @@ export const practiceService = {
    * =========================================================================
    */
 
+  async getQuestions(params = {}) {
+    return this.getAdminQuestions(params);
+  },
+
   /**
    * Retrieve paginated questions list for admin portal with multi-criteria filters
    */

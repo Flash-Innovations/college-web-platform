@@ -123,7 +123,8 @@ export function ContestBuilderPage() {
     setBankLoading(true);
     try {
       const targetType = bankTypeFilter !== "ALL" ? bankTypeFilter : activeSection;
-      const res = await practiceService.getQuestions({
+      const res = await practiceService.getAdminQuestions({
+        status: "ACTIVE",
         type: targetType !== "ALL" ? targetType : undefined,
         category: bankCategoryFilter !== "ALL" ? bankCategoryFilter : undefined,
         difficulty: bankDifficultyFilter !== "ALL" ? bankDifficultyFilter : undefined,
@@ -134,14 +135,17 @@ export function ContestBuilderPage() {
       });
 
       const items = res?.data || (Array.isArray(res) ? res : []);
+      const pinnedVersionIds = new Set(contest?.questions?.map((q) => q.questionVersionId) || []);
+      const filtered = items.filter((q) => !pinnedVersionIds.has(q.id) && !pinnedVersionIds.has(q.activeVersionId));
+
       const paginationMeta = res?.pagination || {
-        total: items.length,
+        total: filtered.length,
         page: bankPage,
         limit: bankLimit,
-        totalPages: Math.ceil(items.length / bankLimit) || 1
+        totalPages: Math.ceil(filtered.length / bankLimit) || 1
       };
 
-      setBankQuestions(Array.isArray(items) ? items : []);
+      setBankQuestions(filtered);
       setBankPagination(paginationMeta);
     } catch (err) {
       setBankQuestions([]);
@@ -153,7 +157,7 @@ export function ContestBuilderPage() {
     } finally {
       setBankLoading(false);
     }
-  }, [bankTypeFilter, activeSection, bankCategoryFilter, bankDifficultyFilter, bankSourceTypeFilter, bankSearch, bankPage, bankLimit, addToast]);
+  }, [bankTypeFilter, activeSection, bankCategoryFilter, bankDifficultyFilter, bankSourceTypeFilter, bankSearch, bankPage, bankLimit, contest, addToast]);
 
   useEffect(() => {
     if (addModalOpen) {
