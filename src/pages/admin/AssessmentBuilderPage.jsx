@@ -79,6 +79,10 @@ export function AssessmentBuilderPage() {
   const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [publishLoading, setPublishLoading] = useState(false);
 
+  // Delete Modal State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   useEffect(() => {
     placementService.getJobs()
       .then((jobs) => setDrivesList(Array.isArray(jobs) ? jobs : []))
@@ -381,6 +385,34 @@ export function AssessmentBuilderPage() {
     }
   };
 
+  const handleDeleteAssessment = async () => {
+    if (!assessment) return;
+    setDeleteLoading(true);
+    try {
+      const res = await practiceService.deleteAssessment(assessment.id);
+      if (addToast) {
+        addToast({
+          type: "success",
+          title: res?.archived ? "Assessment Archived" : "Assessment Deleted",
+          message: res?.message || `Assessment '${assessment.title}' has been successfully ${res?.archived ? "archived to preserve student attempts" : "deleted"}.`
+        });
+      }
+      setDeleteModalOpen(false);
+      navigate(`${basePath}/assessments`);
+    } catch (err) {
+      console.error("Failed to delete assessment:", err);
+      if (addToast) {
+        addToast({
+          type: "error",
+          title: "Deletion Failed",
+          message: err.message || "Failed to delete assessment."
+        });
+      }
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto py-6">
@@ -466,6 +498,17 @@ export function AssessmentBuilderPage() {
               </div>
             </div>
           )}
+
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => setDeleteModalOpen(true)}
+            className="flex items-center gap-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200"
+            title="Delete or Archive assessment"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Delete</span>
+          </Button>
         </div>
       </div>
 
@@ -1274,6 +1317,54 @@ export function AssessmentBuilderPage() {
             </div>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          if (!deleteLoading) setDeleteModalOpen(false);
+        }}
+        title="Delete Assessment"
+      >
+        <div className="space-y-4">
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+            <div className="text-xs text-rose-800 space-y-1">
+              <p className="font-semibold text-rose-950">
+                Are you sure you want to delete this assessment?
+              </p>
+              <p>
+                <strong>{assessment?.title}</strong>
+              </p>
+              <p className="text-[11px] text-rose-700">
+                If candidates have already attempted this assessment, it will be automatically <strong>archived</strong> instead of permanently deleted to preserve student submission history and performance audits. If there are no attempts, it will be removed permanently.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setDeleteModalOpen(false)}
+              disabled={deleteLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={handleDeleteAssessment}
+              disabled={deleteLoading}
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              {deleteLoading ? "Processing..." : "Confirm Delete"}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

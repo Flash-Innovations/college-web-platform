@@ -22,7 +22,8 @@ import {
   Award,
   Briefcase,
   BarChart3,
-  Sparkles
+  Sparkles,
+  Trash2
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { practiceService } from "../../services/practiceService";
@@ -75,6 +76,11 @@ export function AssessmentListPage() {
     durationMinutes: 60,
     sipsDriveId: ""
   });
+
+  // Delete Modal State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [assessmentToDelete, setAssessmentToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     placementService.getJobs()
@@ -244,6 +250,35 @@ export function AssessmentListPage() {
           message: err.message || "Failed to publish assessment."
         });
       }
+    }
+  };
+
+  const handleDeleteAssessment = async () => {
+    if (!assessmentToDelete) return;
+    setDeleteLoading(true);
+    try {
+      const res = await practiceService.deleteAssessment(assessmentToDelete.id);
+      if (addToast) {
+        addToast({
+          type: "success",
+          title: res?.archived ? "Assessment Archived" : "Assessment Deleted",
+          message: res?.message || `Assessment '${assessmentToDelete.title}' has been successfully ${res?.archived ? "archived to preserve student attempts" : "deleted"}.`
+        });
+      }
+      setDeleteModalOpen(false);
+      setAssessmentToDelete(null);
+      fetchAssessments();
+    } catch (err) {
+      console.error("Failed to delete assessment:", err);
+      if (addToast) {
+        addToast({
+          type: "error",
+          title: "Deletion Failed",
+          message: err.message || "Failed to delete assessment."
+        });
+      }
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -455,7 +490,7 @@ export function AssessmentListPage() {
               <tbody className="divide-y divide-slate-100">
                 {assessments.map((a) => (
                   <tr key={a.id} className="hover:bg-slate-50/60 transition-colors">
-                    {/* Title */}
+                    {/* Title & Associated Drive */}
                     <td className="px-5 py-4 align-middle max-w-xs">
                       <div
                         onClick={() => navigate(`${basePath}/assessments/${a.id}`)}
@@ -467,6 +502,25 @@ export function AssessmentListPage() {
                       {a.description && (
                         <div className="text-xs text-slate-400 truncate mt-0.5" title={a.description}>
                           {a.description}
+                        </div>
+                      )}
+                      {a.sipsDriveId && (
+                        <div className="mt-1 flex items-center gap-1.5">
+                          {(() => {
+                            const matchedDrive = drivesList.find(d => String(d.id || d._id) === String(a.sipsDriveId));
+                            const driveLabel = matchedDrive
+                              ? `${matchedDrive.company} (${matchedDrive.title || matchedDrive.role})`
+                              : `Drive: ${a.sipsDriveId}`;
+                            return (
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-1.5 py-0.5 rounded max-w-[200px] truncate"
+                                title={`Linked Placement Drive: ${driveLabel}`}
+                              >
+                                <Briefcase className="w-2.5 h-2.5 shrink-0 text-indigo-500" />
+                                <span className="truncate">{driveLabel}</span>
+                              </span>
+                            );
+                          })()}
                         </div>
                       )}
                     </td>
@@ -581,6 +635,20 @@ export function AssessmentListPage() {
                         >
                           {a.status === "DRAFT" ? "Open Builder" : "Inspect"}
                         </Button>
+                        {canCreate && (
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => {
+                              setAssessmentToDelete(a);
+                              setDeleteModalOpen(true);
+                            }}
+                            className="text-xs px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200"
+                            title="Delete or Archive assessment"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -809,6 +877,60 @@ export function AssessmentListPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          if (!deleteLoading) {
+            setDeleteModalOpen(false);
+            setAssessmentToDelete(null);
+          }
+        }}
+        title="Delete Assessment"
+      >
+        <div className="space-y-4">
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+            <div className="text-xs text-rose-800 space-y-1">
+              <p className="font-semibold text-rose-950">
+                Are you sure you want to delete this assessment?
+              </p>
+              <p>
+                <strong>{assessmentToDelete?.title}</strong>
+              </p>
+              <p className="text-[11px] text-rose-700">
+                If candidates have already attempted this assessment, it will be automatically <strong>archived</strong> instead of permanently deleted to preserve student submission history and performance audits. If there are no attempts, it will be removed permanently.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setDeleteModalOpen(false);
+                setAssessmentToDelete(null);
+              }}
+              disabled={deleteLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={handleDeleteAssessment}
+              disabled={deleteLoading}
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              {deleteLoading ? "Processing..." : "Confirm Delete"}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

@@ -180,6 +180,32 @@ export function JobDescriptionsPage() {
         // deptsResponse might be { success: true, departments: [...] } or an array if it failed
         const deptsArray = deptsResponse?.departments || (Array.isArray(deptsResponse) ? deptsResponse : []);
         setDepartments(deptsArray);
+
+        // Prepopulate newJob.targetBranch with all branches by default
+        const initBranchSet = new Set();
+        deptsArray.forEach(dept => {
+          if (Array.isArray(dept.branches)) {
+            dept.branches.forEach(b => {
+              const bName = typeof b === "string" ? b : b?.name || b?.code;
+              if (bName && String(bName).trim()) initBranchSet.add(String(bName).trim());
+            });
+          }
+          if (Array.isArray(dept.programs)) {
+            dept.programs.forEach(p => {
+              if (Array.isArray(p?.branches)) {
+                p.branches.forEach(b => {
+                  const bName = typeof b === "string" ? b : b?.name || b?.code;
+                  if (bName && String(bName).trim()) initBranchSet.add(String(bName).trim());
+                });
+              }
+            });
+          }
+        });
+        const initialBranches = Array.from(initBranchSet).sort();
+        setNewJob(prev => ({
+          ...prev,
+          targetBranch: prev.targetBranch && prev.targetBranch.length > 0 ? prev.targetBranch : initialBranches
+        }));
         
         if (data.length > 0) {
           setSelectedJob(data[0]);
@@ -205,13 +231,41 @@ export function JobDescriptionsPage() {
           if (p && p.name) {
             if (!progMap[p.name]) progMap[p.name] = { name: p.name, branches: new Set() };
             if (Array.isArray(p.branches)) {
-              p.branches.forEach(b => progMap[p.name].branches.add(b));
+              p.branches.forEach(b => {
+                const bName = typeof b === "string" ? b : b?.name || b?.code;
+                if (bName) progMap[p.name].branches.add(bName);
+              });
             }
           }
         });
       }
     });
     return Object.values(progMap).map(p => ({ name: p.name, branches: Array.from(p.branches) }));
+  }, [departments]);
+
+  const allAvailableBranches = useMemo(() => {
+    const branchSet = new Set();
+    departments.forEach(dept => {
+      // 1. Direct department branches
+      if (Array.isArray(dept.branches)) {
+        dept.branches.forEach(b => {
+          const bName = typeof b === "string" ? b : b?.name || b?.code;
+          if (bName && String(bName).trim()) branchSet.add(String(bName).trim());
+        });
+      }
+      // 2. Program branches
+      if (Array.isArray(dept.programs)) {
+        dept.programs.forEach(p => {
+          if (Array.isArray(p?.branches)) {
+            p.branches.forEach(b => {
+              const bName = typeof b === "string" ? b : b?.name || b?.code;
+              if (bName && String(bName).trim()) branchSet.add(String(bName).trim());
+            });
+          }
+        });
+      }
+    });
+    return Array.from(branchSet).sort();
   }, [departments]);
 
   const availableBatches = useMemo(() => {
@@ -1332,7 +1386,7 @@ export function JobDescriptionsPage() {
                   setNewJob({ 
                     ...newJob, 
                     targetCourse: courseName, 
-                    targetBranch: prog ? [...prog.branches] : [] 
+                    targetBranch: prog && prog.branches && prog.branches.length > 0 ? [...prog.branches] : [...allAvailableBranches] 
                   });
                 }}
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm font-medium"
@@ -1344,43 +1398,75 @@ export function JobDescriptionsPage() {
               </select>
             </div>
             
-            {newJob.targetCourse && (
-              <div className="col-span-1 sm:col-span-3 mt-1">
-                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-2">
-                  Target Branches (Deselect to exclude)
-                </label>
-                <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                  {(() => {
-                    const prog = availablePrograms.find(p => p.name === newJob.targetCourse);
-                    if (!prog || !prog.branches || prog.branches.length === 0) {
-                      return <span className="text-xs text-slate-500">No branches found for this course.</span>;
-                    }
-                    return prog.branches.map(branch => {
-                      const isChecked = Array.isArray(newJob.targetBranch) && newJob.targetBranch.includes(branch);
-                      return (
-                        <label key={branch} className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm hover:border-indigo-300">
-                          <input 
-                            type="checkbox" 
-                            className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-                            checked={isChecked}
-                            onChange={(e) => {
-                              let currentBranches = Array.isArray(newJob.targetBranch) ? [...newJob.targetBranch] : [];
-                              if (e.target.checked) {
-                                if (!currentBranches.includes(branch)) currentBranches.push(branch);
-                              } else {
-                                currentBranches = currentBranches.filter(b => b !== branch);
-                              }
-                              setNewJob({ ...newJob, targetBranch: currentBranches });
-                            }}
-                          />
-                          <span className="text-xs font-semibold text-slate-700">{branch}</span>
-                        </label>
-                      );
-                    });
-                  })()}
-                </div>
-              </div>
-            )}
+            <div className="col-span-1 sm:col-span-3 mt-1">
+              {(() => {
+                const prog = newJob.targetCourse ? availablePrograms.find(p => p.name === newJob.targetCourse) : null;
+                const relevantBranches = (prog && prog.branches && prog.branches.length > 0)
+                  ? prog.branches
+                  : allAvailableBranches;
+
+                return (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-[11px] font-bold text-slate-700 uppercase">
+                        Eligible Branches <span className="text-slate-400 font-normal">({Array.isArray(newJob.targetBranch) ? newJob.targetBranch.length : 0} of {relevantBranches.length} selected)</span>
+                      </label>
+                      {relevantBranches.length > 0 && (
+                        <div className="flex gap-2 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => setNewJob({ ...newJob, targetBranch: [...relevantBranches] })}
+                            className="text-indigo-600 hover:underline font-semibold cursor-pointer"
+                          >
+                            Select All
+                          </button>
+                          <span className="text-slate-300">|</span>
+                          <button
+                            type="button"
+                            onClick={() => setNewJob({ ...newJob, targetBranch: [] })}
+                            className="text-slate-500 hover:underline font-semibold cursor-pointer"
+                          >
+                            Deselect All
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl max-h-48 overflow-y-auto">
+                      {relevantBranches.length === 0 ? (
+                        <span className="text-xs text-slate-500">No specific branches configured in department master. Open to all students.</span>
+                      ) : (
+                        relevantBranches.map(branch => {
+                          const isChecked = Array.isArray(newJob.targetBranch) && newJob.targetBranch.includes(branch);
+                          return (
+                            <label key={branch} className={`flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                              isChecked
+                                ? "bg-indigo-50 border-indigo-300 text-indigo-900 shadow-xs"
+                                : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                            }`}>
+                              <input 
+                                type="checkbox" 
+                                className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  let currentBranches = Array.isArray(newJob.targetBranch) ? [...newJob.targetBranch] : [];
+                                  if (e.target.checked) {
+                                    if (!currentBranches.includes(branch)) currentBranches.push(branch);
+                                  } else {
+                                    currentBranches = currentBranches.filter(b => b !== branch);
+                                  }
+                                  setNewJob({ ...newJob, targetBranch: currentBranches });
+                                }}
+                              />
+                              <span>{branch}</span>
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
 
           <div>
