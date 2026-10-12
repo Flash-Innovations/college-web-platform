@@ -39,13 +39,11 @@ export function DepartmentsPage() {
   // Create Modal State
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [createBranchInput, setCreateBranchInput] = useState("");
   const [createForm, setCreateForm] = useState({
     name: "",
     code: "",
     username: "",
     password: "",
-    branches: [],
     contactEmail: "",
     contactPhone: "",
     codingArenaEnabled: true
@@ -96,22 +94,6 @@ export function DepartmentsPage() {
     }
   }, []);
 
-  const handleAddCreateBranch = () => {
-    const val = createBranchInput.trim();
-    if (val) {
-      if (!createForm.branches.includes(val)) {
-        setCreateForm({ ...createForm, branches: [...createForm.branches, val] });
-      }
-      setCreateBranchInput("");
-    }
-  };
-
-  const removeCreateBranch = (indexToRemove) => {
-    setCreateForm({
-      ...createForm,
-      branches: createForm.branches.filter((_, i) => i !== indexToRemove)
-    });
-  };
 
   const handleAddEditBranch = () => {
     const val = editBranchInput.trim();
@@ -157,21 +139,18 @@ export function DepartmentsPage() {
     setCreating(true);
 
     try {
-      const branchesArr = createForm.branches.map((b) => b.trim()).filter(Boolean);
-      const programsArr = [
-        {
-          name: createForm.name.trim(),
-          branches: branchesArr
-        }
-      ];
-
       const payload = {
         name: createForm.name.trim(),
         code: createForm.code.trim().toUpperCase(),
         username: createForm.username.trim().toLowerCase(),
         password: createForm.password,
-        branches: branchesArr,
-        programs: programsArr,
+        branches: [],
+        programs: [
+          {
+            name: createForm.name.trim(),
+            branches: []
+          }
+        ],
         contactEmail: createForm.contactEmail.trim().toLowerCase(),
         contactPhone: createForm.contactPhone.trim(),
         codingArenaEnabled: Boolean(createForm.codingArenaEnabled)
@@ -180,13 +159,11 @@ export function DepartmentsPage() {
       const res = await institutionService.createDepartment(payload);
       showSuccess(`Program "${payload.name}" created successfully with username: ${payload.username}`);
       setCreateModalOpen(false);
-      setCreateBranchInput("");
       setCreateForm({
         name: "",
         code: "",
         username: "",
         password: "",
-        branches: [],
         contactEmail: "",
         contactPhone: "",
         codingArenaEnabled: true
@@ -671,62 +648,10 @@ export function DepartmentsPage() {
             {createErrors.password && <p className="text-[11px] text-rose-600 mt-1">{createErrors.password}</p>}
           </div>
 
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Branches / Specializations
-            </label>
-            <p className="text-[11px] text-slate-400 mb-2">
-              Add branches belonging to this program (e.g. Computer Science, Mechanical, ECE)
-            </p>
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={createBranchInput}
-                  onChange={(e) => setCreateBranchInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddCreateBranch();
-                    }
-                  }}
-                  placeholder="Add branch (e.g. Computer Science) and press Enter..."
-                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddCreateBranch}
-                  icon={Plus}
-                >
-                  Add
-                </Button>
-              </div>
-
-              {createForm.branches && createForm.branches.length > 0 ? (
-                <div className="flex flex-wrap gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 min-h-[42px]">
-                  {createForm.branches.map((b, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-slate-800 border border-slate-200 shadow-sm flex items-center gap-1.5"
-                    >
-                      {b}
-                      <button
-                        type="button"
-                        onClick={() => removeCreateBranch(idx)}
-                        className="text-slate-400 hover:text-rose-500 cursor-pointer transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-[11px] text-slate-400 italic px-1">
-                  No branches added yet. Press Enter or click Add to add branches.
-                </p>
-              )}
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-2.5">
+            <Info className="w-4 h-4 text-indigo-600 mt-0.5 shrink-0" />
+            <div className="text-[12px] text-slate-600 leading-relaxed">
+              <span className="font-semibold text-slate-800">Branch Setup:</span> Branches and their coordinator login credentials are created and managed by the department after signing in to their department portal.
             </div>
           </div>
 
