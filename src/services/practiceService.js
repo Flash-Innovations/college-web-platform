@@ -604,6 +604,16 @@ export const practiceService = {
   },
 
   /**
+   * Delete or archive assessment (deletes if 0 attempts, archives if attempts > 0)
+   */
+  async deleteAssessment(assessmentId) {
+    const res = await practiceApi.delete(`/api/admin/assessments/${assessmentId}`);
+    invalidateCache('admin_assessments');
+    invalidateCache('available_assessments');
+    return res?.data || res;
+  },
+
+  /**
    * Associate SIPS Placement Drive with Assessment
    */
   async associateDriveToAssessment(assessmentId, sipsDriveId) {
