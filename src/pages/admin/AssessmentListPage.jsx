@@ -45,7 +45,7 @@ export function AssessmentListPage() {
   // Role permissions
   const isTpo = (user?.role === "tpo" || user?.role === "placement") ||
     Boolean(user?.departmentName?.toLowerCase().includes("tpo") || user?.departmentName?.toLowerCase().includes("placement") || user?.name?.toLowerCase().includes("tpo") || user?.name?.toLowerCase().includes("placement"));
-  const canCreate = !isTpo;
+  const canCreate = true;
 
   // Filter States
   const [search, setSearch] = useState("");
@@ -61,6 +61,8 @@ export function AssessmentListPage() {
   // Data & Loading States
   const [assessments, setAssessments] = useState([]);
   const [drivesList, setDrivesList] = useState([]);
+  const [departmentsList, setDepartmentsList] = useState([]);
+  const [selectedDeptId, setSelectedDeptId] = useState(user?.departmentId || "");
   const [branchesList, setBranchesList] = useState([]);
   const [selectedBranchIds, setSelectedBranchIds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -87,20 +89,27 @@ export function AssessmentListPage() {
       .then((jobs) => setDrivesList(Array.isArray(jobs) ? jobs : []))
       .catch(() => setDrivesList([]));
 
-    if (!isTpo) {
-      if (isBranchAdmin) {
-        const brVal = user?.branchId || user?.branchCode || user?.branchName;
-        if (brVal) setSelectedBranchIds([brVal]);
-      } else {
-        institutionService.getDepartmentBranches()
-          .then((res) => {
-            const list = res?.branches || (Array.isArray(res) ? res : []);
-            setBranchesList(list);
-          })
-          .catch(() => setBranchesList([]));
-      }
+    institutionService.getDepartments()
+      .then((res) => {
+        const depts = res?.departments || (Array.isArray(res) ? res : []);
+        setDepartmentsList(depts);
+      })
+      .catch(() => setDepartmentsList([]));
+  }, []);
+
+  useEffect(() => {
+    if (isBranchAdmin) {
+      const brVal = user?.branchId || user?.branchCode || user?.branchName;
+      if (brVal) setSelectedBranchIds([brVal]);
+    } else {
+      institutionService.getDepartmentBranches(selectedDeptId || undefined)
+        .then((res) => {
+          const list = res?.branches || (Array.isArray(res) ? res : []);
+          setBranchesList(list);
+        })
+        .catch(() => setBranchesList([]));
     }
-  }, [isTpo, isBranchAdmin, user]);
+  }, [isBranchAdmin, user, selectedDeptId]);
 
   const fetchAssessments = useCallback(async () => {
     setLoading(true);
@@ -173,7 +182,8 @@ export function AssessmentListPage() {
         description: newAssessment.description?.trim() || "",
         type: resolvedType || "MOCK_ASSESSMENT",
         durationMinutes: parseInt(newAssessment.durationMinutes, 10) || 60,
-        collegeId: user?.collegeId || user?.departmentId || null,
+        collegeId: user?.collegeId || user?.institutionId || null,
+        departmentId: selectedDeptId || user?.departmentId || null,
         branchIds: resolvedBranches,
         sipsDriveId: newAssessment.sipsDriveId?.trim() || null
       };
@@ -751,6 +761,30 @@ export function AssessmentListPage() {
               />
             </div>
           </div>
+
+          {/* Department Selection */}
+          {!isBranchAdmin && departmentsList.length > 0 && (
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Department Scope <span className="text-slate-400 font-normal">({selectedDeptId ? "Department-Specific" : "College-Wide / All Departments"})</span>
+              </label>
+              <select
+                value={selectedDeptId}
+                onChange={(e) => {
+                  setSelectedDeptId(e.target.value);
+                  setSelectedBranchIds([]);
+                }}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-indigo-500 focus:bg-white"
+              >
+                <option value="">-- College-Wide (All Departments) --</option>
+                {departmentsList.map((d) => (
+                  <option key={d._id || d.id} value={d._id || d.id}>
+                    {d.name} {d.code ? `(${d.code})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Branch Scoping / Selection */}
           {isBranchAdmin ? (

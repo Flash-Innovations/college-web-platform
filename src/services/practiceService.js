@@ -533,6 +533,8 @@ export const practiceService = {
    */
   async createAssessment(data) {
     const res = await practiceApi.post('/api/admin/assessments', data);
+    invalidateCache('available_assessments');
+    invalidateCache('admin_assessments');
     return res?.data || res;
   },
 
@@ -592,6 +594,8 @@ export const practiceService = {
    */
   async publishAssessment(assessmentId) {
     const res = await practiceApi.post(`/api/admin/assessments/${assessmentId}/publish`);
+    invalidateCache('available_assessments');
+    invalidateCache('admin_assessments');
     return res?.data || res;
   },
 
@@ -889,6 +893,7 @@ export const practiceService = {
   async createContest(data) {
     const res = await practiceApi.post('/api/contests', data);
     invalidateCache('contests');
+    invalidateCache('available_contests');
     return res?.data || res;
   },
 
@@ -910,6 +915,7 @@ export const practiceService = {
   async publishContest(contestId) {
     const res = await practiceApi.post(`/api/contests/${contestId}/publish`);
     invalidateCache('contests');
+    invalidateCache('available_contests');
     return res?.data || res;
   },
 
@@ -923,6 +929,7 @@ export const practiceService = {
     if (!contestId) throw new Error('Contest ID is required');
     const res = await practiceApi.delete(`/api/contests/${contestId}`);
     invalidateCache('contests');
+    invalidateCache('available_contests');
     return res?.data || res;
   },
 
