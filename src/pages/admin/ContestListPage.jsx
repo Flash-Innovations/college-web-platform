@@ -47,7 +47,7 @@ export function ContestListPage() {
   const isBranchAdmin = user?.role === "branch_admin" || Boolean(user?.branchName);
   const isTpo = (user?.role === "tpo" || user?.role === "placement") ||
     Boolean(user?.departmentName?.toLowerCase().includes("tpo") || user?.departmentName?.toLowerCase().includes("placement"));
-  const canCreate = !isTpo;
+  const canCreate = true;
 
   // Filter States
   const [search, setSearch] = useState("");
@@ -61,6 +61,8 @@ export function ContestListPage() {
   // Data & Loading States
   const [contests, setContests] = useState([]);
   const [drivesList, setDrivesList] = useState([]);
+  const [departmentsList, setDepartmentsList] = useState([]);
+  const [selectedDeptId, setSelectedDeptId] = useState(user?.departmentId || "");
   const [branchesList, setBranchesList] = useState([]);
   const [selectedBranchIds, setSelectedBranchIds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -103,20 +105,27 @@ export function ContestListPage() {
       .then((jobs) => setDrivesList(Array.isArray(jobs) ? jobs : []))
       .catch(() => setDrivesList([]));
 
-    if (!isTpo) {
-      if (isBranchAdmin) {
-        const brVal = user?.branchId || user?.branchCode || user?.branchName;
-        if (brVal) setSelectedBranchIds([brVal]);
-      } else {
-        institutionService.getDepartmentBranches()
-          .then((res) => {
-            const list = res?.branches || (Array.isArray(res) ? res : []);
-            setBranchesList(list);
-          })
-          .catch(() => setBranchesList([]));
-      }
+    institutionService.getDepartments()
+      .then((res) => {
+        const depts = res?.departments || (Array.isArray(res) ? res : []);
+        setDepartmentsList(depts);
+      })
+      .catch(() => setDepartmentsList([]));
+  }, []);
+
+  useEffect(() => {
+    if (isBranchAdmin) {
+      const brVal = user?.branchId || user?.branchCode || user?.branchName;
+      if (brVal) setSelectedBranchIds([brVal]);
+    } else {
+      institutionService.getDepartmentBranches(selectedDeptId || undefined)
+        .then((res) => {
+          const list = res?.branches || (Array.isArray(res) ? res : []);
+          setBranchesList(list);
+        })
+        .catch(() => setBranchesList([]));
     }
-  }, [isTpo, isBranchAdmin, user]);
+  }, [isBranchAdmin, user, selectedDeptId]);
 
   const fetchContests = useCallback(async () => {
     setLoading(true);
@@ -183,6 +192,8 @@ export function ContestListPage() {
         startAt: new Date(newContest.startAt).toISOString(),
         endAt: new Date(newContest.endAt).toISOString(),
         durationMinutes: duration,
+        collegeId: user?.collegeId || user?.institutionId || null,
+        departmentId: selectedDeptId || user?.departmentId || null,
         branchIds: resolvedBranches,
         sipsDriveId: newContest.sipsDriveId?.trim() || null
       };
@@ -681,6 +692,30 @@ export function ContestListPage() {
               />
             </div>
           </div>
+
+          {/* Department Selection */}
+          {!isBranchAdmin && departmentsList.length > 0 && (
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Department Scope <span className="text-slate-400 font-normal">({selectedDeptId ? "Department-Specific" : "College-Wide / All Departments"})</span>
+              </label>
+              <select
+                value={selectedDeptId}
+                onChange={(e) => {
+                  setSelectedDeptId(e.target.value);
+                  setSelectedBranchIds([]);
+                }}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+              >
+                <option value="">-- College-Wide (All Departments) --</option>
+                {departmentsList.map((d) => (
+                  <option key={d._id || d.id} value={d._id || d.id}>
+                    {d.name} {d.code ? `(${d.code})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Branch Eligibility Scoping */}
           {isBranchAdmin ? (
