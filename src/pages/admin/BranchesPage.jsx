@@ -63,6 +63,7 @@ export function BranchesPage() {
     name: "",
     code: "",
     coordinatorName: "",
+    username: "",
     contactEmail: "",
     contactPhone: "",
     codingArenaEnabled: true,
@@ -70,6 +71,20 @@ export function BranchesPage() {
     newPassword: ""
   });
   const [showEditPassword, setShowEditPassword] = useState(false);
+  const [editErrors, setEditErrors] = useState({});
+
+  // Initialize Credentials Modal State
+  const [initCredsModalOpen, setInitCredsModalOpen] = useState(false);
+  const [initializingCreds, setInitializingCreds] = useState(false);
+  const [branchForCreds, setBranchForCreds] = useState(null);
+  const [credsForm, setCredsForm] = useState({
+    username: "",
+    password: "",
+    coordinatorName: "",
+    contactEmail: ""
+  });
+  const [credsErrors, setCredsErrors] = useState({});
+  const [showCredsPassword, setShowCredsPassword] = useState(false);
 
   // Delete Modal State
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -200,10 +215,13 @@ export function BranchesPage() {
 
   const openEditModal = (br) => {
     setEditBranchId(br._id || br.id);
+    setEditErrors({});
+    setShowEditPassword(false);
     setEditForm({
       name: br.name || "",
       code: br.code || "",
       coordinatorName: br.coordinatorName || "",
+      username: br.username || "",
       contactEmail: br.contactEmail || "",
       contactPhone: br.contactPhone || "",
       codingArenaEnabled: br.codingArenaEnabled !== false,
@@ -215,12 +233,27 @@ export function BranchesPage() {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    if (!editForm.name.trim()) {
-      showError("Branch name is required");
+    const errors = {};
+    if (!editForm.name.trim()) errors.name = "Branch name is required";
+    
+    if (editForm.username && editForm.username.trim()) {
+      if (!/^[a-z0-9_.-]+$/.test(editForm.username.trim().toLowerCase())) {
+        errors.username = "Username must contain lowercase letters, numbers, underscore, hyphen or dot";
+      }
+    }
+
+    if (editForm.newPassword && editForm.newPassword.length < 6) {
+      errors.newPassword = "Password must be at least 6 characters";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setEditErrors(errors);
+      showWarning("Please correct the form errors");
       return;
     }
 
     setEditing(true);
+    setEditErrors({});
     try {
       const payload = {
         name: editForm.name.trim(),
@@ -231,6 +264,10 @@ export function BranchesPage() {
         codingArenaEnabled: Boolean(editForm.codingArenaEnabled),
         status: editForm.status
       };
+
+      if (editForm.username && editForm.username.trim()) {
+        payload.username = editForm.username.trim().toLowerCase();
+      }
 
       if (editForm.newPassword && editForm.newPassword.trim()) {
         payload.password = editForm.newPassword.trim();
@@ -245,6 +282,90 @@ export function BranchesPage() {
       showError(err.message || "Failed to update branch");
     } finally {
       setEditing(false);
+    }
+  };
+
+  const openInitCredentialsModal = (br) => {
+    setBranchForCreds(br);
+    setCredsErrors({});
+    setShowCredsPassword(false);
+
+    // Auto-suggest username if blank
+    let suggestedUsername = br.username || "";
+    if (!suggestedUsername) {
+      const branchCodeClean = (br.code || br.name || "br")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "")
+        .slice(0, 5);
+      const deptCodeClean = (departmentInfo?.code || user?.departmentCode || "dept")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "")
+        .slice(0, 6);
+      suggestedUsername = `${deptCodeClean}_${branchCodeClean}`;
+    }
+
+    setCredsForm({
+      username: suggestedUsername,
+      password: "",
+      coordinatorName: br.coordinatorName || "",
+      contactEmail: br.contactEmail || ""
+    });
+    setInitCredsModalOpen(true);
+  };
+
+  const handleInitCredentialsSubmit = async (e) => {
+    e.preventDefault();
+    if (!branchForCreds) return;
+
+    const errors = {};
+    const cleanUser = credsForm.username.trim().toLowerCase();
+    if (!cleanUser) {
+      errors.username = "Sign-in username is required";
+    } else if (!/^[a-z0-9_.-]+$/.test(cleanUser)) {
+      errors.username = "Username must contain lowercase letters, numbers, underscore, hyphen or dot";
+    }
+
+    const isFirstTime = !branchForCreds.username;
+    if (isFirstTime && (!credsForm.password || credsForm.password.length < 6)) {
+      errors.password = "Initial password is required (minimum 6 characters)";
+    } else if (credsForm.password && credsForm.password.length < 6) {
+      errors.password = "Password must be at least 6 characters";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setCredsErrors(errors);
+      showWarning("Please correct the credentials form errors");
+      return;
+    }
+
+    setInitializingCreds(true);
+    setCredsErrors({});
+
+    try {
+      const branchId = branchForCreds._id || branchForCreds.id;
+      const payload = {
+        username: cleanUser
+      };
+      if (credsForm.password && credsForm.password.trim()) {
+        payload.password = credsForm.password.trim();
+      }
+      if (credsForm.coordinatorName && credsForm.coordinatorName.trim()) {
+        payload.coordinatorName = credsForm.coordinatorName.trim();
+      }
+      if (credsForm.contactEmail && credsForm.contactEmail.trim()) {
+        payload.contactEmail = credsForm.contactEmail.trim().toLowerCase();
+      }
+
+      await institutionService.updateBranch(activeDeptId, branchId, payload);
+      showSuccess(`Sign-in username "${cleanUser}" ${isFirstTime ? "initialized" : "updated"} successfully for ${branchForCreds.name}`);
+      setInitCredsModalOpen(false);
+      setBranchForCreds(null);
+      loadBranches();
+    } catch (err) {
+      console.error("Failed to initialize branch credentials:", err);
+      showError(err.message || "Failed to initialize credentials");
+    } finally {
+      setInitializingCreds(false);
     }
   };
 
@@ -478,12 +599,30 @@ export function BranchesPage() {
 
                       <td className="py-3.5 px-4">
                         {br.username ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 font-mono font-bold text-indigo-700 text-xs border border-slate-200/70">
-                            <KeyRound className="w-3 h-3 text-indigo-500" />
-                            {br.username}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 font-mono font-bold text-indigo-700 text-xs border border-slate-200/70">
+                              <KeyRound className="w-3 h-3 text-indigo-500" />
+                              {br.username}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => openInitCredentialsModal(br)}
+                              title="Edit sign-in credentials or password"
+                              className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                          </div>
                         ) : (
-                          <span className="text-slate-400 italic">No credentials</span>
+                          <button
+                            type="button"
+                            onClick={() => openInitCredentialsModal(br)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs border border-amber-300 transition-all cursor-pointer shadow-2xs group"
+                            title="Click to initialize a sign-in username & password for this branch coordinator"
+                          >
+                            <KeyRound className="w-3.5 h-3.5 text-amber-600 group-hover:scale-110 transition-transform" />
+                            <span>Initialize Username</span>
+                          </button>
                         )}
                       </td>
 
@@ -514,6 +653,19 @@ export function BranchesPage() {
 
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openInitCredentialsModal(br)}
+                            title={br.username ? "Manage Sign-in Credentials" : "Initialize Sign-in Username"}
+                            className={`p-1.5 rounded-lg border text-xs cursor-pointer transition-colors ${
+                              br.username
+                                ? "text-slate-500 border-slate-200 hover:text-indigo-600 hover:bg-indigo-50"
+                                : "text-amber-700 bg-amber-50 border-amber-300 hover:bg-amber-100 font-bold"
+                            }`}
+                          >
+                            <KeyRound className="w-3.5 h-3.5" />
+                          </button>
+
                           <button
                             type="button"
                             onClick={() => handleToggleCodingArena(br)}
@@ -825,26 +977,57 @@ export function BranchesPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Reset Password (leave blank to keep current password)
-            </label>
-            <div className="relative">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Sign-in Username
+              </label>
               <input
-                type={showEditPassword ? "text" : "password"}
-                value={editForm.newPassword}
-                onChange={(e) => setEditForm({ ...editForm, newPassword: e.target.value })}
-                placeholder="••••••••"
-                className="w-full pl-3 pr-9 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                type="text"
+                value={editForm.username}
+                onChange={(e) => setEditForm({ ...editForm, username: e.target.value.toLowerCase() })}
+                placeholder={departmentInfo?.code ? `${departmentInfo.code.toLowerCase()}_${(editForm.code || 'br').toLowerCase()}` : "e.g. btech_cse"}
+                className={`w-full px-3 py-2 rounded-xl border font-mono text-xs font-medium focus:outline-none focus:ring-2 ${
+                  editErrors.username
+                    ? "border-rose-300 focus:ring-rose-500/20 focus:border-rose-500"
+                    : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-600"
+                }`}
               />
-              <button
-                type="button"
-                onClick={() => setShowEditPassword(!showEditPassword)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
-                tabIndex={-1}
-              >
-                {showEditPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              </button>
+              {editErrors.username ? (
+                <p className="text-[11px] text-rose-600 mt-1">{editErrors.username}</p>
+              ) : (
+                <p className="text-[10px] text-slate-400 mt-0.5">Used by coordinator to sign in</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                {editForm.username ? "Reset Password" : "Initial Password"}
+              </label>
+              <div className="relative">
+                <input
+                  type={showEditPassword ? "text" : "password"}
+                  value={editForm.newPassword}
+                  onChange={(e) => setEditForm({ ...editForm, newPassword: e.target.value })}
+                  placeholder={editForm.username ? "•••••••• (blank to keep)" : "Min 6 characters"}
+                  className={`w-full pl-3 pr-9 py-2 rounded-xl border text-xs font-medium focus:outline-none focus:ring-2 ${
+                    editErrors.newPassword
+                      ? "border-rose-300 focus:ring-rose-500/20 focus:border-rose-500"
+                      : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-600"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowEditPassword(!showEditPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                  tabIndex={-1}
+                >
+                  {showEditPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+              {editErrors.newPassword && (
+                <p className="text-[11px] text-rose-600 mt-1">{editErrors.newPassword}</p>
+              )}
             </div>
           </div>
 
@@ -878,6 +1061,160 @@ export function BranchesPage() {
               disabled={editing}
             >
               Save Changes
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Initialize / Manage Branch Credentials Modal */}
+      <Modal
+        isOpen={initCredsModalOpen}
+        onClose={() => setInitCredsModalOpen(false)}
+        maxWidth="max-w-md"
+        title={branchForCreds?.username ? "Update Branch Sign-in Credentials" : "Initialize Branch Sign-in Credentials"}
+        subtitle={`Provision autonomous coordinator credentials for ${branchForCreds?.name || "branch"}`}
+      >
+        <form onSubmit={handleInitCredentialsSubmit} className="space-y-4 text-xs">
+          {/* Summary Banner */}
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+            <div>
+              <p className="font-bold text-slate-900">{branchForCreds?.name}</p>
+              <p className="text-[11px] text-slate-500 font-mono">Code: {branchForCreds?.code || "—"}</p>
+            </div>
+            {branchForCreds?.username ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-mono font-bold text-[11px] border border-indigo-200">
+                <CheckCircle2 className="w-3 h-3 text-indigo-500" />
+                Active: {branchForCreds.username}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 font-semibold text-[11px] border border-amber-200">
+                <AlertCircle className="w-3 h-3 text-amber-600" />
+                Not Initialized
+              </span>
+            )}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider">
+                Sign-in Username *
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  const bCode = (branchForCreds?.code || branchForCreds?.name || "br")
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]/g, "")
+                    .slice(0, 5);
+                  const dCode = (departmentInfo?.code || user?.departmentCode || "dept")
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]/g, "")
+                    .slice(0, 6);
+                  setCredsForm({ ...credsForm, username: `${dCode}_${bCode}` });
+                }}
+                className="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer"
+              >
+                Auto-Suggest
+              </button>
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                required
+                value={credsForm.username}
+                onChange={(e) => setCredsForm({ ...credsForm, username: e.target.value.toLowerCase() })}
+                placeholder="e.g. btech_cse"
+                className={`w-full px-3 py-2 rounded-xl border font-mono text-xs font-medium focus:outline-none focus:ring-2 ${
+                  credsErrors.username
+                    ? "border-rose-300 focus:ring-rose-500/20 focus:border-rose-500"
+                    : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-600"
+                }`}
+              />
+            </div>
+            {credsErrors.username ? (
+              <p className="text-[11px] text-rose-600 mt-1">{credsErrors.username}</p>
+            ) : (
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                Coordinator signs into the Branch Portal using this username.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              {branchForCreds?.username ? "Reset Password (leave blank to keep current)" : "Initial Password *"}
+            </label>
+            <div className="relative">
+              <input
+                type={showCredsPassword ? "text" : "password"}
+                required={!branchForCreds?.username}
+                value={credsForm.password}
+                onChange={(e) => setCredsForm({ ...credsForm, password: e.target.value })}
+                placeholder="••••••••"
+                className={`w-full pl-3 pr-9 py-2 rounded-xl border text-xs font-medium focus:outline-none focus:ring-2 ${
+                  credsErrors.password
+                    ? "border-rose-300 focus:ring-rose-500/20 focus:border-rose-500"
+                    : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-600"
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowCredsPassword(!showCredsPassword)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                tabIndex={-1}
+              >
+                {showCredsPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+            {credsErrors.password && (
+              <p className="text-[11px] text-rose-600 mt-1">{credsErrors.password}</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Coordinator Name
+              </label>
+              <input
+                type="text"
+                value={credsForm.coordinatorName}
+                onChange={(e) => setCredsForm({ ...credsForm, coordinatorName: e.target.value })}
+                placeholder="e.g. Dr. Jane Smith"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Contact Email
+              </label>
+              <input
+                type="email"
+                value={credsForm.contactEmail}
+                onChange={(e) => setCredsForm({ ...credsForm, contactEmail: e.target.value })}
+                placeholder="coordinator@college.edu"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setInitCredsModalOpen(false)}
+              disabled={initializingCreds}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              loading={initializingCreds}
+              disabled={initializingCreds}
+            >
+              {branchForCreds?.username ? "Update Credentials" : "Initialize Credentials"}
             </Button>
           </div>
         </form>

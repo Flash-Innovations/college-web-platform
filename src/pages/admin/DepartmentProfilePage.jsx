@@ -18,7 +18,8 @@ import {
   Code2,
   Globe,
   MapPin,
-  UserCheck
+  UserCheck,
+  KeyRound
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -511,7 +512,24 @@ export function DepartmentProfilePage() {
                       </Badge>
                     </div>
 
-                    <div className="text-xs text-slate-500 space-y-1">
+                    <div className="text-xs text-slate-500 space-y-1.5 pt-1 border-t border-slate-100">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-400">Username:</span>
+                        {b.username ? (
+                          <span className="font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100/60 flex items-center gap-1">
+                            <KeyRound className="w-3 h-3 text-indigo-500" />
+                            {b.username}
+                          </span>
+                        ) : (
+                          <Link
+                            to="/dept/branches"
+                            className="font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-200 flex items-center gap-1 transition-colors"
+                          >
+                            <KeyRound className="w-3 h-3 text-amber-600" />
+                            Initialize
+                          </Link>
+                        )}
+                      </div>
                       {b.coordinatorName && (
                         <p className="flex items-center gap-1.5">
                           <UserCheck className="w-3.5 h-3.5 text-slate-400" />

@@ -94,28 +94,40 @@ export const institutionService = {
    * Add a new branch under an academic department
    */
   async addBranch(departmentId, branchData) {
-    return await api.post(`/api/institution/departments/${departmentId}/branches`, branchData);
+    if (departmentId) {
+      return await api.post(`/api/institution/departments/${departmentId}/branches`, branchData);
+    }
+    return await api.post('/api/institution/department/branches', branchData);
   },
 
   /**
    * Update a branch under an academic department
    */
   async updateBranch(departmentId, branchId, branchData) {
-    return await api.put(`/api/institution/departments/${departmentId}/branches/${branchId}`, branchData);
+    if (departmentId) {
+      return await api.put(`/api/institution/departments/${departmentId}/branches/${branchId}`, branchData);
+    }
+    return await api.put(`/api/institution/department/branches/${branchId}`, branchData);
   },
 
   /**
    * Toggle Coding Arena access for a specific branch
    */
   async toggleBranchCodingArena(departmentId, branchId, enabled) {
-    return await api.patch(`/api/institution/departments/${departmentId}/branches/${branchId}/coding-arena`, { enabled });
+    if (departmentId) {
+      return await api.patch(`/api/institution/departments/${departmentId}/branches/${branchId}/coding-arena`, { enabled });
+    }
+    return await api.patch(`/api/institution/department/branches/${branchId}/coding-arena`, { enabled });
   },
 
   /**
    * Delete a branch from an academic department
    */
   async deleteBranch(departmentId, branchId) {
-    return await api.delete(`/api/institution/departments/${departmentId}/branches/${branchId}`);
+    if (departmentId) {
+      return await api.delete(`/api/institution/departments/${departmentId}/branches/${branchId}`);
+    }
+    return await api.delete(`/api/institution/department/branches/${branchId}`);
   },
 
   /**

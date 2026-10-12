@@ -267,7 +267,14 @@ export function AdminDashboard() {
                               {br.username}
                             </span>
                           ) : (
-                            <span className="text-slate-400 italic">No credentials</span>
+                            <Link
+                              to={`${basePath}/branches`}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs border border-amber-300 transition-colors shadow-2xs"
+                              title="Click to initialize branch coordinator sign-in username"
+                            >
+                              <KeyRound className="w-3 h-3 text-amber-600" />
+                              Initialize
+                            </Link>
                           )}
                         </td>
 
