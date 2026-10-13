@@ -195,5 +195,12 @@ export const adminService = {
    */
   async deleteStudent(studentId) {
     return await api.delete(`/api/admin/students/${studentId}`);
+  },
+
+  /**
+   * Bulk delete students by array of ids
+   */
+  async bulkDeleteStudents(studentIds = []) {
+    return await api.post('/api/admin/students/bulk-delete', { studentIds });
   }
 };

@@ -21,7 +21,8 @@ import {
   RefreshCw,
   ExternalLink,
   History,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from "lucide-react";
 import { practiceService } from "../../services/practiceService";
 import { Badge } from "../../components/common/Badge";
@@ -99,6 +100,18 @@ export function QuestionDetailsPage() {
             message: "Question status set to ARCHIVED."
           });
         }
+      } else if (actionType === "DELETE") {
+        await practiceService.deleteQuestion(question.id);
+        if (addToast) {
+          addToast({
+            type: "success",
+            title: "Question Deleted",
+            message: "Question permanently deleted from database."
+          });
+        }
+        setActionModalOpen(false);
+        navigate(`${basePath}/questions`);
+        return;
       }
       setActionModalOpen(false);
       fetchQuestionDetails();
@@ -182,12 +195,25 @@ export function QuestionDetailsPage() {
                 setActionType("ARCHIVE");
                 setActionModalOpen(true);
               }}
-              className="flex items-center gap-1.5 text-rose-600 hover:bg-rose-50 border-rose-200"
+              className="flex items-center gap-1.5 text-amber-600 hover:bg-amber-50 border-amber-200"
             >
               <Archive className="w-4 h-4" />
               <span>Archive Question</span>
             </Button>
           )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setActionType("DELETE");
+              setActionModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 text-rose-600 hover:bg-rose-50 border-rose-200"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Delete Question</span>
+          </Button>
         </div>
       </div>
 
@@ -545,14 +571,25 @@ export function QuestionDetailsPage() {
       <Modal
         isOpen={actionModalOpen}
         onClose={() => setActionModalOpen(false)}
-        title={actionType === "ACTIVATE" ? "Activate Question" : "Archive Question"}
+        title={actionType === "ACTIVATE" ? "Activate Question" : actionType === "DELETE" ? "Delete Question Permanently" : "Archive Question"}
       >
         <div className="space-y-4">
-          <p className="text-sm text-slate-600">
-            {actionType === "ACTIVATE"
-              ? "Activating will make this question available for upcoming practice sessions and contest evaluations."
-              : "Archiving will hide this question from student practice lists while preserving all existing attempt records."}
-          </p>
+          {actionType === "DELETE" ? (
+            <div className="space-y-2">
+              <p className="text-sm text-slate-600">
+                Are you sure you want to permanently delete this question? This will hard-delete the question and all associated test cases, versions, and submissions from PostgreSQL.
+              </p>
+              <p className="text-xs text-rose-700 bg-rose-50 p-2.5 rounded-lg border border-rose-200">
+                <strong>Permanent Deletion:</strong> This action cannot be undone. The question will be permanently removed from the database.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-600">
+              {actionType === "ACTIVATE"
+                ? "Activating will make this question available for upcoming practice sessions and contest evaluations."
+                : "Archiving will hide this question from student practice lists while preserving all existing attempt records."}
+            </p>
+          )}
 
           <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
             <Button
@@ -569,7 +606,7 @@ export function QuestionDetailsPage() {
               onClick={handleConfirmAction}
               disabled={actionLoading}
             >
-              {actionLoading ? "Processing..." : actionType === "ACTIVATE" ? "Confirm Activation" : "Confirm Archival"}
+              {actionLoading ? "Processing..." : actionType === "ACTIVATE" ? "Confirm Activation" : actionType === "DELETE" ? "Confirm Deletion" : "Confirm Archival"}
             </Button>
           </div>
         </div>
