@@ -406,6 +406,7 @@ export const placementService = {
       requiredSkills: requiredSkillsArr,
       description: newJobData.description || "",
       externalLink: newJobData.externalLink || "",
+      departmentId: newJobData.departmentId || undefined,
       jdPdfUrl: newJobData.jdPdfUrl || "",
       jdPdfPublicId: newJobData.jdPdfPublicId || "",
       jdPdfOriginalName: newJobData.jdPdfOriginalName || "",

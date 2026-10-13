@@ -1383,9 +1383,14 @@ export function JobDescriptionsPage() {
                 onChange={(e) => {
                   const courseName = e.target.value;
                   const prog = availablePrograms.find(p => p.name === courseName);
+                  const matchedDept = departments.find(d => 
+                    d.name === courseName || 
+                    (Array.isArray(d.programs) && d.programs.some(pr => pr.name === courseName))
+                  );
                   setNewJob({ 
                     ...newJob, 
                     targetCourse: courseName, 
+                    departmentId: matchedDept ? (matchedDept._id || matchedDept.id) : "",
                     targetBranch: prog && prog.branches && prog.branches.length > 0 ? [...prog.branches] : [...allAvailableBranches] 
                   });
                 }}
