@@ -25,7 +25,8 @@ import {
   Download,
   Plus,
   HelpCircle,
-  Trash2
+  Trash2,
+  Database
 } from "lucide-react";
 import { practiceService } from "../../services/practiceService";
 import { Badge } from "../../components/common/Badge";
@@ -97,6 +98,147 @@ const SAMPLE_CODING_JSON = [
   }
 ];
 
+const SAMPLE_SQL_JSON = [
+  {
+    externalId: "COLLEGE-SQL-001",
+    status: "ACTIVE",
+    tags: ["sql", "joins", "analytics"],
+    source: {
+      type: "COLLEGE_CREATED",
+      namespace: "college-bank"
+    },
+    question: {
+      type: "CODING",
+      format: "CODING",
+      domain: "SQL",
+      category: "SQL",
+      subcategory: "JOINS",
+      difficulty: "MEDIUM",
+      title: "Branch Student Course Enrollment Aggregator",
+      statement: "Write a SQL query to find the number of courses each enrolled student is taking. Return student name and course count."
+    },
+    coding: {
+      inputFormat: "Relational Tables",
+      outputFormat: "Result Set Table",
+      constraints: "Standard ANSI SQL",
+      timeLimitMs: 2000,
+      memoryLimitKb: 128000,
+      maxMarks: 50,
+      starterCode: {
+        sql: "-- Write your SQL query here\nSELECT \n  s.name AS student_name,\n  COUNT(e.course_id) AS total_courses\nFROM students s\nJOIN enrollments e ON s.id = e.student_id\nWHERE "
+      },
+      testCases: [
+        {
+          input: "EXECUTE_QUERY",
+          expectedOutput: "{\"columns\":[\"student_name\",\"total_courses\"],\"rows\":[[\"Alice\",3],[\"Bob\",2]]}",
+          isHidden: false,
+          weight: 50,
+          order: 1
+        }
+      ]
+    },
+    metadata: {
+      category: "SQL Practice",
+      topic: "JOINS",
+      difficulty: "Medium",
+      scenario: "Write a SQL query to find the number of courses each enrolled student is taking.",
+      requirements: [
+        "Join students and enrollments table on student_id",
+        "Group by student name",
+        "Count distinct courses enrolled"
+      ],
+      tables: [
+        {
+          name: "students",
+          columns: ["id", "name"],
+          rows: [[1, "Alice"], [2, "Bob"]]
+        },
+        {
+          name: "enrollments",
+          columns: ["id", "student_id", "course_id"],
+          rows: [[1, 1, 101], [2, 1, 102], [3, 1, 103], [4, 2, 101], [5, 2, 104]]
+        }
+      ],
+      starterQuery: "-- Write your SQL query here\nSELECT \n  s.name AS student_name,\n  COUNT(e.course_id) AS total_courses\nFROM students s\nJOIN enrollments e ON s.id = e.student_id\nWHERE ",
+      solutionQuery: "SELECT s.name AS student_name, COUNT(e.course_id) AS total_courses FROM students s JOIN enrollments e ON s.id = e.student_id GROUP BY s.name;",
+      expectedOutput: {
+        columns: ["student_name", "total_courses"],
+        rows: [["Alice", 3], ["Bob", 2]]
+      },
+      hints: [
+        { level: 1, text: "Group by student id and name, and use COUNT(course_id)." }
+      ]
+    }
+  }
+];
+
+const SAMPLE_DEV_JSON = [
+  {
+    externalId: "COLLEGE-DEV-001",
+    status: "ACTIVE",
+    tags: ["dev", "middleware", "express", "javascript"],
+    source: {
+      type: "COLLEGE_CREATED",
+      namespace: "college-bank"
+    },
+    question: {
+      type: "CODING",
+      format: "CODING",
+      domain: "DEV_PRACTICES",
+      category: "DEV_PRACTICES",
+      subcategory: "API_DESIGN",
+      difficulty: "MEDIUM",
+      title: "API Request Correlation ID Middleware",
+      statement: "Implement an Express-style middleware that injects a unique x-request-id header if not present, and attaches it to req.correlationId."
+    },
+    coding: {
+      inputFormat: "Function / Middleware signature",
+      outputFormat: "req, res mutations",
+      constraints: "O(1) execution",
+      timeLimitMs: 2000,
+      memoryLimitKb: 128000,
+      maxMarks: 50,
+      starterCode: {
+        javascript: "function correlationMiddleware(req, res, next) {\n  // TODO: Add x-request-id\n  next();\n}\n\nmodule.exports = { correlationMiddleware };"
+      },
+      testCases: [
+        {
+          input: "req = { headers: {} }; res = { setHeader: jest.fn() }; correlationMiddleware(req, res, () => {});",
+          expectedOutput: "true",
+          isHidden: false,
+          weight: 50,
+          order: 1
+        }
+      ]
+    },
+    metadata: {
+      category: "Dev Practices",
+      topic: "API_DESIGN",
+      difficulty: "Medium",
+      stack: "javascript",
+      scenario: "Implement an Express-style middleware that injects a unique x-request-id header if not present.",
+      requirements: [
+        "Check if req.headers['x-request-id'] exists.",
+        "If not, generate a unique uuid and set it.",
+        "Call next() callback."
+      ],
+      starterCode: "function correlationMiddleware(req, res, next) {\n  // TODO: Add x-request-id\n  next();\n}\n\nmodule.exports = { correlationMiddleware };",
+      solutionCode: "function correlationMiddleware(req, res, next) {\n  const id = req.headers['x-request-id'] || Date.now().toString(36);\n  req.correlationId = id;\n  if (res.setHeader) res.setHeader('x-request-id', id);\n  next();\n}\n\nmodule.exports = { correlationMiddleware };",
+      testCases: [
+        {
+          id: 1,
+          description: "Sets correlation id when absent",
+          input: "req = { headers: {} }; correlationMiddleware(req, {}, () => {});",
+          expected: "true"
+        }
+      ],
+      hints: [
+        { level: 1, text: "Inspect req.headers['x-request-id'] and fallback to a generated ID." }
+      ]
+    }
+  }
+];
+
 export function QuestionListPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -106,6 +248,7 @@ export function QuestionListPage() {
   // Filter States
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [difficultyFilter, setDifficultyFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [sourceTypeFilter, setSourceTypeFilter] = useState("ALL");
@@ -144,6 +287,7 @@ export function QuestionListPage() {
         limit,
         search,
         type: typeFilter,
+        category: categoryFilter,
         difficulty: difficultyFilter,
         status: statusFilter,
         sourceType: sourceTypeFilter,
@@ -171,7 +315,7 @@ export function QuestionListPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, search, typeFilter, difficultyFilter, statusFilter, sourceTypeFilter, scopeFilter, addToast]);
+  }, [page, limit, search, typeFilter, categoryFilter, difficultyFilter, statusFilter, sourceTypeFilter, scopeFilter, addToast]);
 
   useEffect(() => {
     fetchQuestions();
@@ -186,6 +330,7 @@ export function QuestionListPage() {
   const handleResetFilters = () => {
     setSearch("");
     setTypeFilter("ALL");
+    setCategoryFilter("ALL");
     setDifficultyFilter("ALL");
     setStatusFilter("ALL");
     setSourceTypeFilter("ALL");
@@ -459,7 +604,7 @@ export function QuestionListPage() {
           </Button>
         </form>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-1">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 pt-1">
           {/* Type Filter */}
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Type</label>
@@ -472,6 +617,22 @@ export function QuestionListPage() {
               <option value="CODING">Coding</option>
               <option value="APTITUDE">Aptitude MCQ</option>
               <option value="TECHNICAL">Technical MCQ</option>
+            </select>
+          </div>
+
+          {/* Category Filter */}
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Category</label>
+            <select
+              value={categoryFilter}
+              onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+              className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-indigo-500"
+            >
+              <option value="ALL">All Categories</option>
+              <option value="DSA">DSA</option>
+              <option value="SQL">SQL</option>
+              <option value="DEV_PRACTICES">Dev Practices</option>
+              <option value="TECHNICAL">Technical</option>
             </select>
           </div>
 
@@ -639,6 +800,16 @@ export function QuestionListPage() {
                         {q.category === "DATA_INTERPRETATION" && (
                           <span className="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-violet-50 text-violet-700 border border-violet-200">
                             📊 Chart Exhibit
+                          </span>
+                        )}
+                        {(q.category === "SQL" || q.domain === "SQL") && (
+                          <span className="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+                            🗄️ SQL Query
+                          </span>
+                        )}
+                        {(q.category === "DEV_PRACTICES" || q.domain === "DEV_PRACTICES") && (
+                          <span className="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            ⚙️ Dev Task
                           </span>
                         )}
                         {q.subcategory && (
@@ -843,7 +1014,7 @@ export function QuestionListPage() {
             <div className="text-slate-600">
               Import single questions or bulk batches directly into your institution's Question Bank.
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 flex-wrap shrink-0">
               <button
                 type="button"
                 onClick={() => setImportJsonText(JSON.stringify(SAMPLE_MCQ_JSON, null, 2))}
@@ -858,7 +1029,23 @@ export function QuestionListPage() {
                 className="px-2.5 py-1 bg-white border border-slate-200 hover:border-indigo-300 text-slate-700 rounded-md font-semibold text-[11px] flex items-center gap-1 cursor-pointer"
               >
                 <Code2 className="w-3 h-3 text-indigo-600" />
-                Coding Sample
+                DSA Sample
+              </button>
+              <button
+                type="button"
+                onClick={() => setImportJsonText(JSON.stringify(SAMPLE_SQL_JSON, null, 2))}
+                className="px-2.5 py-1 bg-white border border-slate-200 hover:border-sky-300 text-slate-700 rounded-md font-semibold text-[11px] flex items-center gap-1 cursor-pointer"
+              >
+                <Database className="w-3 h-3 text-sky-600" />
+                SQL Sample
+              </button>
+              <button
+                type="button"
+                onClick={() => setImportJsonText(JSON.stringify(SAMPLE_DEV_JSON, null, 2))}
+                className="px-2.5 py-1 bg-white border border-slate-200 hover:border-emerald-300 text-slate-700 rounded-md font-semibold text-[11px] flex items-center gap-1 cursor-pointer"
+              >
+                <FileText className="w-3 h-3 text-emerald-600" />
+                Dev Sample
               </button>
             </div>
           </div>
