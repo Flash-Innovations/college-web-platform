@@ -514,6 +514,22 @@ export const practiceService = {
   },
 
   /**
+   * Permanently delete question from database
+   */
+  async deleteQuestion(questionId) {
+    const res = await practiceApi.delete(`/api/admin/questions/${questionId}`);
+    return res?.data || res;
+  },
+
+  /**
+   * Bulk delete questions from database
+   */
+  async bulkDeleteQuestions(ids = []) {
+    const res = await practiceApi.post('/api/admin/questions/bulk-delete', { ids });
+    return res?.data || res;
+  },
+
+  /**
    * Bulk import questions via JSON array
    * @param {Array<object>} items
    */

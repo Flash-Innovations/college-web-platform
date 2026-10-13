@@ -24,7 +24,8 @@ import {
   FileText,
   Download,
   Plus,
-  HelpCircle
+  HelpCircle,
+  Trash2
 } from "lucide-react";
 import { practiceService } from "../../services/practiceService";
 import { Badge } from "../../components/common/Badge";
@@ -218,6 +219,15 @@ export function QuestionListPage() {
             type: "success",
             title: "Question Archived",
             message: `Question '${selectedQuestion.externalId || selectedQuestion.id}' has been ARCHIVED.`
+          });
+        }
+      } else if (actionType === "DELETE") {
+        await practiceService.deleteQuestion(selectedQuestion.id);
+        if (addToast) {
+          addToast({
+            type: "success",
+            title: "Question Deleted",
+            message: `Question '${selectedQuestion.externalId || selectedQuestion.id}' was permanently deleted from database.`
           });
         }
       }
@@ -704,12 +714,20 @@ export function QuestionListPage() {
                         {q.status === "ACTIVE" && (
                           <button
                             onClick={() => openActionModal(q, "ARCHIVE")}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
                             title="Archive Question"
                           >
                             <Archive className="w-4 h-4" />
                           </button>
                         )}
+
+                        <button
+                          onClick={() => openActionModal(q, "DELETE")}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                          title="Delete Question Permanently"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -753,11 +771,11 @@ export function QuestionListPage() {
         )}
       </div>
 
-      {/* Confirmation Modal for Activate / Archive */}
+      {/* Confirmation Modal for Activate / Archive / Delete */}
       <Modal
         isOpen={actionModalOpen}
         onClose={() => setActionModalOpen(false)}
-        title={actionType === "ACTIVATE" ? "Activate Question" : "Archive Question"}
+        title={actionType === "ACTIVATE" ? "Activate Question" : actionType === "DELETE" ? "Delete Question Permanently" : "Archive Question"}
       >
         {selectedQuestion && (
           <div className="space-y-4">
@@ -771,6 +789,15 @@ export function QuestionListPage() {
               <p className="text-sm text-slate-600">
                 Activating this question will make it available for student practice selection and placement contests.
               </p>
+            ) : actionType === "DELETE" ? (
+              <div className="space-y-2 text-sm text-slate-600">
+                <p>
+                  Are you sure you want to permanently delete this question? This will hard-delete the question and all associated test cases, versions, and submissions from PostgreSQL.
+                </p>
+                <p className="text-xs text-rose-700 bg-rose-50 p-2.5 rounded-lg border border-rose-200">
+                  <strong>Permanent Deletion:</strong> This action cannot be undone. The question will be permanently removed from the database.
+                </p>
+              </div>
             ) : (
               <div className="space-y-2 text-sm text-slate-600">
                 <p>
@@ -797,7 +824,7 @@ export function QuestionListPage() {
                 onClick={handleConfirmAction}
                 disabled={actionLoading}
               >
-                {actionLoading ? "Processing..." : actionType === "ACTIVATE" ? "Confirm Activation" : "Confirm Archival"}
+                {actionLoading ? "Processing..." : actionType === "ACTIVATE" ? "Confirm Activation" : actionType === "DELETE" ? "Confirm Deletion" : "Confirm Archival"}
               </Button>
             </div>
           </div>
