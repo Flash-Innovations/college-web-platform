@@ -76,7 +76,9 @@ export function AssessmentListPage() {
     description: "",
     type: "MOCK_ASSESSMENT",
     durationMinutes: 60,
-    sipsDriveId: ""
+    sipsDriveId: "",
+    safeBrowserEnabled: true,
+    maxViolations: 3
   });
 
   // Delete Modal State
@@ -177,9 +179,13 @@ export function AssessmentListPage() {
         ? [user?.branchId || user?.branchCode || user?.branchName].filter(Boolean)
         : selectedBranchIds;
 
+      const rawDesc = newAssessment.description?.trim() || "";
+      const proctorTag = `[SAFE_BROWSER:{"enabled":${Boolean(newAssessment.safeBrowserEnabled)},"maxViolations":${newAssessment.maxViolations || 3}}]`;
+      const finalDesc = `${rawDesc}\n${proctorTag}`.trim();
+
       const payload = {
         title: newAssessment.title.trim(),
-        description: newAssessment.description?.trim() || "",
+        description: finalDesc,
         type: resolvedType || "MOCK_ASSESSMENT",
         durationMinutes: parseInt(newAssessment.durationMinutes, 10) || 60,
         collegeId: user?.collegeId || user?.institutionId || null,
@@ -206,7 +212,9 @@ export function AssessmentListPage() {
         description: "",
         type: "PLACEMENT_ASSESSMENT",
         durationMinutes: 60,
-        sipsDriveId: ""
+        sipsDriveId: "",
+        safeBrowserEnabled: true,
+        maxViolations: 3
       });
 
       if (targetId) {
@@ -760,6 +768,38 @@ export function AssessmentListPage() {
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-indigo-500 focus:bg-white"
               />
             </div>
+          </div>
+
+          {/* Proctoring & Safe Browser Controls */}
+          <div className="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-800 block">Proctored Safe Browser Mode</span>
+                <span className="text-[11px] text-slate-500">Requires fullscreen, tracks tab switches & disables clipboard</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={newAssessment.safeBrowserEnabled}
+                onChange={(e) => setNewAssessment({ ...newAssessment, safeBrowserEnabled: e.target.checked })}
+                className="w-4 h-4 text-indigo-600 rounded cursor-pointer"
+              />
+            </div>
+
+            {newAssessment.safeBrowserEnabled && (
+              <div className="flex items-center justify-between pt-2 border-t border-indigo-100/80">
+                <label className="text-xs font-semibold text-slate-700">Max Allowed Violation Strikes</label>
+                <select
+                  value={newAssessment.maxViolations}
+                  onChange={(e) => setNewAssessment({ ...newAssessment, maxViolations: parseInt(e.target.value, 10) || 3 })}
+                  className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                >
+                  <option value={1}>1 Strike (Zero Tolerance)</option>
+                  <option value={2}>2 Strikes</option>
+                  <option value={3}>3 Strikes (Standard)</option>
+                  <option value={5}>5 Strikes (Lenient)</option>
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Department Selection */}
