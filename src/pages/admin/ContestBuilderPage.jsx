@@ -30,7 +30,8 @@ import {
   ArrowDown,
   ExternalLink,
   X,
-  Building
+  Building,
+  Save
 } from "lucide-react";
 import { practiceService } from "../../services/practiceService";
 import { placementService } from "../../services/placementService";
@@ -48,13 +49,16 @@ export function ContestBuilderPage() {
   const { addToast } = useNotifications();
 
   const [contest, setContest] = useState(null);
+  const [questionsList, setQuestionsList] = useState([]);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Active Section Tab (Contests support CODING, APTITUDE, TECHNICAL)
   const [activeSection, setActiveSection] = useState("CODING");
 
-  // Add Question Modal States (identical to Assessment Builder Question Bank)
+  // Add Question Modal States (Question Bank)
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [bankQuestions, setBankQuestions] = useState([]);
   const [bankLoading, setBankLoading] = useState(false);
@@ -89,6 +93,18 @@ export function ContestBuilderPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Prevent accidental navigation when unsaved changes exist
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   const handleDeleteContest = async () => {
     setDeleteLoading(true);
     try {
@@ -115,6 +131,8 @@ export function ContestBuilderPage() {
       const res = await practiceService.getContestById(contestId);
       const data = res?.data?.id ? res.data : res;
       setContest(data);
+      setQuestionsList(data?.questions || []);
+      setHasUnsavedChanges(false);
     } catch (err) {
       setError(err?.message || "Failed to retrieve contest details.");
     } finally {
@@ -152,7 +170,7 @@ export function ContestBuilderPage() {
       });
 
       const items = res?.data || (Array.isArray(res) ? res : []);
-      const pinnedVersionIds = new Set(contest?.questions?.map((q) => q.questionVersionId) || []);
+      const pinnedVersionIds = new Set(questionsList.map((q) => q.questionVersionId) || []);
       const filtered = items.filter((q) => !pinnedVersionIds.has(q.id) && !pinnedVersionIds.has(q.activeVersionId));
 
       const paginationMeta = res?.pagination || {
@@ -174,7 +192,7 @@ export function ContestBuilderPage() {
     } finally {
       setBankLoading(false);
     }
-  }, [bankTypeFilter, activeSection, bankCategoryFilter, bankDifficultyFilter, bankSourceTypeFilter, bankSearch, bankPage, bankLimit, contest, addToast]);
+  }, [bankTypeFilter, activeSection, bankCategoryFilter, bankDifficultyFilter, bankSourceTypeFilter, bankSearch, bankPage, bankLimit, questionsList, addToast]);
 
   useEffect(() => {
     if (addModalOpen) {
@@ -182,17 +200,14 @@ export function ContestBuilderPage() {
     }
   }, [addModalOpen, fetchBankQuestions]);
 
-  // Single Question Add handler
-  const handleAddQuestion = async (e) => {
+  // Single Question Add handler (Stages locally in memory, no direct DB write)
+  const handleAddQuestion = (e) => {
     e.preventDefault();
     if (!selectedBankQuestion) return;
 
     let versionId = selectedBankQuestion.versionId || selectedBankQuestion.latestVersionId || selectedBankQuestion.activeVersionId || selectedBankQuestion.versions?.[0]?.id;
     if (!versionId && selectedBankQuestion.id) {
-      try {
-        const qDetail = await practiceService.getAdminQuestionById(selectedBankQuestion.id);
-        versionId = qDetail?.latestVersion?.id || qDetail?.versions?.[0]?.id;
-      } catch (_) {}
+      versionId = selectedBankQuestion.id;
     }
 
     if (!versionId) {
@@ -200,75 +215,90 @@ export function ContestBuilderPage() {
       return;
     }
 
-    setAddingLoading(true);
-    try {
-      await practiceService.addContestQuestion(contestId, {
-        questionVersionId: versionId,
-        section: addPayload.section,
-        marks: parseFloat(addPayload.marks) || 1.0,
-        negativeMarks: parseFloat(addPayload.negativeMarks) || 0.0
-      });
-
-      addToast({
-        type: "success",
-        title: "Question Added",
-        message: `Successfully pinned problem to ${addPayload.section} section.`
-      });
-
-      setSelectedBankQuestion(null);
-      setAddModalOpen(false);
-      fetchContest();
-    } catch (err) {
-      addToast({
-        type: "error",
-        title: "Cannot Add Question",
-        message: err?.message || "Failed to add question to contest."
-      });
-    } finally {
-      setAddingLoading(false);
+    // Check for duplicate in draft
+    if (questionsList.some(q => q.questionVersionId === versionId)) {
+      addToast({ type: "error", message: "This question is already staged in this contest." });
+      return;
     }
+
+    const latestVer = selectedBankQuestion.versions?.[0] || selectedBankQuestion.latestVersion || {};
+    const newContestQuestion = {
+      id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      contestId,
+      questionVersionId: versionId,
+      section: addPayload.section,
+      marks: parseFloat(addPayload.marks) || (addPayload.section === "CODING" ? 10.0 : 2.0),
+      negativeMarks: parseFloat(addPayload.negativeMarks) || 0.0,
+      order: questionsList.length + 1,
+      questionVersion: {
+        id: versionId,
+        title: selectedBankQuestion.title || latestVer.title || latestVer.statement || "Problem Challenge",
+        statement: selectedBankQuestion.statement || latestVer.statement || "",
+        codingProblem: latestVer.codingProblem || null,
+        question: {
+          type: selectedBankQuestion.type || addPayload.section,
+          difficulty: selectedBankQuestion.difficulty || "MEDIUM",
+          category: selectedBankQuestion.category || "General"
+        }
+      }
+    };
+
+    setQuestionsList(prev => [...prev, newContestQuestion]);
+    setHasUnsavedChanges(true);
+    setSelectedBankQuestion(null);
+    setAddModalOpen(false);
+
+    addToast({
+      type: "info",
+      title: "Question Staged",
+      message: `Added problem to ${addPayload.section} draft. Click 'Save Changes' to persist to database.`
+    });
   };
 
-  // Batch Add handler for multi-selected questions
-  const handleBatchAddQuestions = async () => {
+  // Batch Add handler for multi-selected questions (Stages locally in memory)
+  const handleBatchAddQuestions = () => {
     if (selectedBankQuestionIds.length === 0) return;
 
     setBatchAdding(true);
-    setBatchProgress({ current: 0, total: selectedBankQuestionIds.length });
-
     let addedCount = 0;
-    let failedCount = 0;
+    const newStaged = [];
 
     for (let i = 0; i < selectedBankQuestionIds.length; i++) {
       const qId = selectedBankQuestionIds[i];
       const q = bankQuestions.find(item => item.id === qId);
-      let versionId = q?.versionId || q?.latestVersionId || q?.activeVersionId || q?.versions?.[0]?.id;
-
-      if (!versionId && qId) {
-        try {
-          const qDetail = await practiceService.getAdminQuestionById(qId);
-          versionId = qDetail?.latestVersion?.id || qDetail?.versions?.[0]?.id;
-        } catch (_) {}
-      }
+      const versionId = q?.versionId || q?.latestVersionId || q?.activeVersionId || q?.versions?.[0]?.id || qId;
 
       if (versionId) {
-        try {
-          // Align section strictly to question type
+        const isDuplicate = questionsList.some(item => item.questionVersionId === versionId) ||
+          newStaged.some(item => item.questionVersionId === versionId);
+
+        if (!isDuplicate) {
           const targetSection = q?.type === 'CODING' ? 'CODING' : (q?.type === 'APTITUDE' ? 'APTITUDE' : 'TECHNICAL');
-          await practiceService.addContestQuestion(contestId, {
+          const latestVer = q?.versions?.[0] || q?.latestVersion || {};
+
+          newStaged.push({
+            id: `temp_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 6)}`,
+            contestId,
             questionVersionId: versionId,
             section: targetSection,
             marks: targetSection === "CODING" ? 10.0 : 2.0,
-            negativeMarks: 0.0
+            negativeMarks: 0.0,
+            order: questionsList.length + newStaged.length + 1,
+            questionVersion: {
+              id: versionId,
+              title: q.title || latestVer.title || latestVer.statement || "Problem Challenge",
+              statement: q.statement || latestVer.statement || "",
+              codingProblem: latestVer.codingProblem || null,
+              question: {
+                type: q.type || targetSection,
+                difficulty: q.difficulty || "MEDIUM",
+                category: q.category || "General"
+              }
+            }
           });
           addedCount++;
-        } catch (_) {
-          failedCount++;
         }
-      } else {
-        failedCount++;
       }
-      setBatchProgress({ current: i + 1, total: selectedBankQuestionIds.length });
     }
 
     setBatchAdding(false);
@@ -276,69 +306,95 @@ export function ContestBuilderPage() {
     setAddModalOpen(false);
 
     if (addedCount > 0) {
+      setQuestionsList(prev => [...prev, ...newStaged]);
+      setHasUnsavedChanges(true);
       addToast({
-        type: "success",
-        title: "Batch Addition Completed",
-        message: `Added ${addedCount} questions to contest.${failedCount > 0 ? ` (${failedCount} skipped or already added)` : ""}`
+        type: "info",
+        title: "Questions Staged",
+        message: `${addedCount} question(s) staged. Click 'Save Changes' to persist to database.`
       });
-      fetchContest();
     } else {
       addToast({
         type: "error",
-        title: "Batch Add Failed",
-        message: "None of the selected questions could be added. They may already be in the contest or of mismatched type."
+        title: "Batch Add Notice",
+        message: "Selected questions are already present in this contest."
       });
     }
   };
 
-  // Remove Question
-  const handleRemoveQuestion = async (contestQuestionId) => {
+  // Remove Question from local draft
+  const handleRemoveQuestion = (contestQuestionId) => {
     if (contest.status !== "DRAFT") {
       addToast({ type: "error", message: "Cannot modify questions in locked contest." });
       return;
     }
 
-    try {
-      await practiceService.removeContestQuestion(contestId, contestQuestionId);
-      addToast({ type: "info", message: "Question removed from contest." });
-      fetchContest();
-    } catch (err) {
-      addToast({
-        type: "error",
-        title: "Removal Failed",
-        message: err?.message || "Failed to remove question."
-      });
-    }
+    setQuestionsList(prev => prev.filter(q => q.id !== contestQuestionId && q.questionVersionId !== contestQuestionId));
+    setHasUnsavedChanges(true);
+    addToast({ type: "info", message: "Question removed from draft. Click 'Save Changes' to persist." });
   };
 
-  // Reorder Questions in Section
-  const handleMoveQuestion = async (index, direction) => {
+  // Reorder Questions in Section (local state)
+  const handleMoveQuestion = (index, direction) => {
     if (contest.status !== "DRAFT") return;
-    const sectionQuestions = (contest.questions || []).filter(q => q.section === activeSection);
+    const sectionQuestions = questionsList.filter(q => q.section === activeSection);
     const targetIndex = index + direction;
     if (targetIndex < 0 || targetIndex >= sectionQuestions.length) return;
 
-    const reordered = [...sectionQuestions];
-    const [moved] = reordered.splice(index, 1);
-    reordered.splice(targetIndex, 0, moved);
+    const reorderedSection = [...sectionQuestions];
+    const [moved] = reorderedSection.splice(index, 1);
+    reorderedSection.splice(targetIndex, 0, moved);
 
-    const questionOrders = reordered.map((item, idx) => ({
-      contestQuestionId: item.id,
+    const otherSections = questionsList.filter(q => q.section !== activeSection);
+    const combined = [...otherSections, ...reorderedSection].map((item, idx) => ({
+      ...item,
       order: idx + 1
     }));
 
+    setQuestionsList(combined);
+    setHasUnsavedChanges(true);
+  };
+
+  // Master Save Button Handler - Persists all staged questions to database in one atomic request
+  const handleSaveQuestions = async () => {
+    if (!contest || contest.status !== "DRAFT") {
+      addToast({ type: "error", message: "Cannot modify questions in locked contest." });
+      return;
+    }
+
+    setSaving(true);
     try {
-      await practiceService.reorderContestQuestions(contestId, { questionOrders });
-      fetchContest();
+      const payload = questionsList.map((q, idx) => ({
+        questionVersionId: q.questionVersionId,
+        section: q.section,
+        order: idx + 1,
+        marks: parseFloat(q.marks) || (q.section === "CODING" ? 10.0 : 2.0),
+        negativeMarks: parseFloat(q.negativeMarks) || 0.0
+      }));
+
+      await practiceService.syncContestQuestions(contestId, payload);
+      setHasUnsavedChanges(false);
+      addToast({
+        type: "success",
+        title: "Contest Saved",
+        message: `Successfully persisted ${payload.length} question(s) to the database.`
+      });
+      await fetchContest();
     } catch (err) {
-      addToast({ type: "error", message: "Failed to reorder questions." });
+      addToast({
+        type: "error",
+        title: "Save Failed",
+        message: err?.message || "Failed to save questions to database."
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
-  // Publish Contest Handler
+  // Publish Contest Handler (Auto-saves draft if modified, then publishes)
   const handlePublishContest = async () => {
     if (!contest) return;
-    if ((contest.questions || []).length === 0) {
+    if (questionsList.length === 0) {
       addToast({
         type: "error",
         title: "Empty Contest",
@@ -349,6 +405,18 @@ export function ContestBuilderPage() {
 
     setPublishLoading(true);
     try {
+      if (hasUnsavedChanges) {
+        const payload = questionsList.map((q, idx) => ({
+          questionVersionId: q.questionVersionId,
+          section: q.section,
+          order: idx + 1,
+          marks: parseFloat(q.marks) || (q.section === "CODING" ? 10.0 : 2.0),
+          negativeMarks: parseFloat(q.negativeMarks) || 0.0
+        }));
+        await practiceService.syncContestQuestions(contestId, payload);
+        setHasUnsavedChanges(false);
+      }
+
       await practiceService.publishContest(contestId);
       addToast({
         type: "success",
@@ -392,8 +460,8 @@ export function ContestBuilderPage() {
   }
 
   const isLocked = contest.status !== "DRAFT";
-  const questionsList = contest.questions || [];
   const sectionQuestions = questionsList.filter(q => q.section === activeSection);
+  const calculatedTotalMarks = questionsList.reduce((sum, q) => sum + (parseFloat(q.marks) || 0), 0);
   const nowMs = Date.now();
   const startMs = new Date(contest.startAt).getTime();
   const endMs = new Date(contest.endAt).getTime();
@@ -449,6 +517,29 @@ export function ContestBuilderPage() {
             </Button>
           )}
 
+          {!isLocked && (
+            <Button
+              variant={hasUnsavedChanges ? "primary" : "outline"}
+              size="sm"
+              onClick={handleSaveQuestions}
+              disabled={saving}
+              className={`flex items-center gap-1.5 text-xs font-semibold ${
+                hasUnsavedChanges
+                  ? "bg-amber-600 hover:bg-amber-700 text-white shadow-xs"
+                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              {saving ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : hasUnsavedChanges ? (
+                <Save className="w-3.5 h-3.5" />
+              ) : (
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+              )}
+              <span>{saving ? "Saving Changes..." : hasUnsavedChanges ? "Save Changes" : "Saved to DB"}</span>
+            </Button>
+          )}
+
           {!isLocked ? (
             <Button
               variant="primary"
@@ -477,6 +568,30 @@ export function ContestBuilderPage() {
           </Button>
         </div>
       </div>
+
+      {/* Unsaved Changes Banner */}
+      {hasUnsavedChanges && !isLocked && (
+        <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2.5 text-xs text-amber-900 font-medium">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>
+              You have <strong>unsaved question changes</strong> in this contest ({questionsList.length} total question(s) staged). Click <strong>Save Changes</strong> to persist them to the database.
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSaveQuestions}
+              disabled={saving}
+              className="text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold flex items-center gap-1.5"
+            >
+              {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              <span>{saving ? "Saving..." : "Save Changes"}</span>
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Schedule Window Banner */}
       <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 shadow-xs">
@@ -524,7 +639,7 @@ export function ContestBuilderPage() {
             <div>
               <span className="text-[11px] font-semibold text-amber-800 uppercase tracking-wider block">Total Marks</span>
               <span className="text-xs font-bold text-slate-900">
-                {contest.totalMarks || 0} Marks ({questionsList.length} Problems)
+                {calculatedTotalMarks} Marks ({questionsList.length} Problems)
               </span>
             </div>
           </div>
@@ -730,7 +845,7 @@ export function ContestBuilderPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Total Marks</span>
-                <span className="font-bold text-slate-800">{contest.totalMarks}</span>
+                <span className="font-bold text-slate-800">{calculatedTotalMarks}</span>
               </div>
             </div>
 
@@ -844,8 +959,8 @@ export function ContestBuilderPage() {
                   className="text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold"
                 >
                   {batchAdding
-                    ? `Adding (${batchProgress.current}/${batchProgress.total})...`
-                    : `Batch Add to ${activeSection}`}
+                    ? `Staging (${batchProgress.current}/${batchProgress.total})...`
+                    : `Batch Add to ${activeSection} Draft`}
                 </Button>
               </div>
             </div>
@@ -866,11 +981,11 @@ export function ContestBuilderPage() {
           ) : (
             <div className="max-h-96 overflow-y-auto space-y-2 pr-1">
               {bankQuestions.map((q) => {
-                const latestVersion = q.versions?.[0];
-                const title = latestVersion?.title || latestVersion?.statement || "Untitled Challenge";
+                const latestVersion = q.versions?.[0] || q.latestVersion;
+                const title = latestVersion?.title || latestVersion?.statement || q.title || "Untitled Challenge";
                 const isSelected = selectedBankQuestionIds.includes(q.id);
                 const isAlreadyInContest = questionsList.some(
-                  cq => cq.questionVersionId === latestVersion?.id
+                  cq => cq.questionVersionId === latestVersion?.id || cq.questionVersionId === q.activeVersionId || cq.questionVersionId === q.id
                 );
 
                 return (
@@ -1053,7 +1168,7 @@ export function ContestBuilderPage() {
                 disabled={addingLoading}
                 className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
               >
-                {addingLoading ? "Adding..." : "Add Problem to Contest"}
+                {addingLoading ? "Staging..." : "Add to Contest Draft"}
               </Button>
             </div>
           </form>

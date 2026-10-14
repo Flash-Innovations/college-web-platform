@@ -918,6 +918,13 @@ export const practiceService = {
     return res?.data || res;
   },
 
+  async syncContestQuestions(contestId, questions) {
+    const res = await practiceApi.put(`/api/contests/${contestId}/questions`, { questions });
+    invalidateCache('contests');
+    invalidateCache('available_contests');
+    return res?.data || res;
+  },
+
   async removeContestQuestion(contestId, contestQuestionId) {
     const res = await practiceApi.delete(`/api/contests/${contestId}/questions/${contestQuestionId}`);
     return res?.data || res;
