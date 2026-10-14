@@ -25,7 +25,8 @@ import {
   Timer,
   XCircle,
   ExternalLink,
-  Trash2
+  Trash2,
+  Eye
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { practiceService } from "../../services/practiceService";
@@ -45,6 +46,7 @@ export function ContestListPage() {
 
   // Role permissions
   const isBranchAdmin = user?.role === "branch_admin" || Boolean(user?.branchName);
+  const isBranchRole = isBranchAdmin || basePath === "/branch" || Boolean(user?.branchId || user?.branchName || user?.branchCode);
   const isTpo = (user?.role === "tpo" || user?.role === "placement") ||
     Boolean(user?.departmentName?.toLowerCase().includes("tpo") || user?.departmentName?.toLowerCase().includes("placement"));
   const canCreate = true;
@@ -456,7 +458,7 @@ export function ContestListPage() {
             return (
               <div
                 key={c.id}
-                className="bg-white border border-slate-200 hover:border-amber-300 hover:shadow-md rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 group"
+                className="bg-white border border-slate-200 hover:border-amber-300 hover:shadow-md rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 group overflow-hidden"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-2.5">
@@ -525,53 +527,77 @@ export function ContestListPage() {
                         <Briefcase className="w-3 h-3 text-violet-500" /> Placement Drive
                       </span>
                     )}
+
+                    {(() => {
+                      const isDeptCreatedForBranch = isBranchRole && Boolean(c.createdBy && c.createdBy !== user?.id);
+                      if (!isDeptCreatedForBranch) return null;
+                      return (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-md">
+                          <Shield className="w-3 h-3 text-purple-500" /> Dept Contest • Read-Only
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
 
                 {/* Card Actions */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                  <span className="text-[11px] text-slate-400 flex items-center gap-1 font-medium">
-                    <Users className="w-3 h-3" /> {attemptsCount} {attemptsCount === 1 ? "student" : "students"}
-                  </span>
+                {(() => {
+                  const isDeptCreatedForBranch = isBranchRole && Boolean(c.createdBy && c.createdBy !== user?.id);
+                  const canDeleteContest = canCreate && !isDeptCreatedForBranch;
 
-                  <div className="flex items-center gap-1.5">
-                    {canCreate && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteModalContest(c);
-                        }}
-                        className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200 p-2"
-                        title="Delete Contest"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    )}
+                  return (
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-1.5 min-w-0">
+                      <span className="text-[11px] text-slate-400 flex items-center gap-1 font-medium shrink-0">
+                        <Users className="w-3 h-3" /> {attemptsCount} {attemptsCount === 1 ? "student" : "students"}
+                      </span>
 
-                    {c.status !== "DRAFT" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate(`${basePath}/contests/${c.id}/leaderboard`)}
-                        className="text-xs flex items-center gap-1"
-                      >
-                        <Trophy className="w-3 h-3 text-amber-600" />
-                        <span>Leaderboard</span>
-                      </Button>
-                    )}
+                      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                        {canDeleteContest && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteModalContest(c);
+                            }}
+                            className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200 h-8 w-8 p-0 flex items-center justify-center shrink-0"
+                            title="Delete Contest"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
 
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => navigate(`${basePath}/contests/${c.id}`)}
-                      className="text-xs bg-slate-900 hover:bg-slate-800 text-white"
-                    >
-                      <span>{c.status === "DRAFT" ? "Builder Studio" : "Manage"}</span>
-                    </Button>
-                  </div>
-                </div>
+                        {c.status !== "DRAFT" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`${basePath}/contests/${c.id}/leaderboard`)}
+                            className="text-xs flex items-center gap-1 h-8 px-2.5 shrink-0"
+                          >
+                            <Trophy className="w-3 h-3 text-amber-600" />
+                            <span>Leaderboard</span>
+                          </Button>
+                        )}
+
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => navigate(`${basePath}/contests/${c.id}`)}
+                          className="text-xs bg-slate-900 hover:bg-slate-800 text-white h-8 px-2.5 shrink-0 flex items-center gap-1"
+                        >
+                          {isDeptCreatedForBranch ? (
+                            <>
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>View</span>
+                            </>
+                          ) : (
+                            <span>{c.status === "DRAFT" ? "Builder Studio" : "Manage"}</span>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
