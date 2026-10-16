@@ -71,8 +71,8 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img
-              src="/branding/sips-logo-compact.png"
-              alt="SIPS - Skill Intelligence Placement System"
+              src="/branding/flash-logo-horizontal.png"
+              alt="FLASH"
               className="h-9 w-auto max-w-[170px] sm:max-w-[200px] object-contain cursor-pointer"
               onClick={() => navigate("/")}
             />
@@ -536,8 +536,8 @@ export function LandingPage() {
                 {/* Center Core */}
                 <div className="w-36 h-36 rounded-full bg-white border border-indigo-200 shadow-lg shadow-indigo-100 flex flex-col items-center justify-center text-center p-3">
                   <img
-                    src="/branding/sips-mark.png"
-                    alt="SIPS Mark"
+                    src="/branding/flash-logo-compact.png"
+                    alt="FLASH"
                     className="w-7 h-7 object-contain"
                   />
                   <span className="font-extrabold text-slate-900 text-xs mt-1">SIPS Engine</span>
@@ -679,8 +679,8 @@ export function LandingPage() {
             <div className="lg:col-span-4 space-y-4">
               <div className="flex items-center gap-3">
                 <img
-                  src="/branding/sips-logo-compact.png"
-                  alt="SIPS - Skill Intelligence Placement System"
+                  src="/branding/flash-logo-horizontal.png"
+                  alt="FLASH"
                   className="h-9 w-auto object-contain cursor-pointer"
                   onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                 />
@@ -798,8 +798,8 @@ export function LandingPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
             <div className="flex items-center gap-2">
               <img
-                src="/branding/sips-mark.png"
-                alt="SIPS Mark"
+                src="/branding/flash-logo-compact.png"
+                alt="FLASH"
                 className="w-4 h-4 object-contain"
               />
               <span>© {new Date().getFullYear()} SIPS Platform. All institutional rights reserved.</span>

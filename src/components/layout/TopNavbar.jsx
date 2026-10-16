@@ -56,6 +56,24 @@ export function TopNavbar({ onMenuClick }) {
           <Menu className="w-5 h-5" />
         </button>
 
+        {/* Brand logo while working on website */}
+        <div
+          onClick={() => navigate(`/${role}/dashboard`)}
+          className="flex items-center gap-2 cursor-pointer select-none shrink-0"
+          title="FLASH College Portal"
+        >
+          <img
+            src="/branding/flash-logo-compact.png"
+            alt="FLASH"
+            className="h-8 w-8 object-contain sm:hidden"
+          />
+          <img
+            src="/branding/flash-logo-horizontal.png"
+            alt="FLASH"
+            className="h-7 w-auto max-w-[140px] sm:max-w-[160px] object-contain hidden sm:block"
+          />
+        </div>
+
         <div className="relative w-full hidden sm:block">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input

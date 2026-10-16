@@ -204,16 +204,26 @@ export function Sidebar({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen
           >
             {isCollapsed ? (
               <img
-                src="/branding/sips-mark.png"
-                alt="SIPS"
+                src="/branding/flash-logo-compact.png"
+                alt="FLASH"
                 className="w-9 h-9 object-contain shrink-0 mx-auto"
               />
             ) : (
-              <img
-                src="/branding/sips-logo-compact.png"
-                alt="SIPS - Skill Intelligence"
-                className="h-8 w-auto max-w-[170px] object-contain shrink-0"
-              />
+              <div className="flex items-center gap-2.5">
+                <img
+                  src="/branding/flash-logo-compact.png"
+                  alt="FLASH"
+                  className="w-9 h-9 object-contain shrink-0"
+                />
+                <div className="flex flex-col">
+                  <span className="text-base font-black tracking-tight text-slate-900 leading-tight">
+                    FLASH
+                  </span>
+                  <span className="text-[10px] font-semibold text-indigo-600 uppercase tracking-wider font-mono">
+                    College Portal
+                  </span>
+                </div>
+              </div>
             )}
           </div>
 
