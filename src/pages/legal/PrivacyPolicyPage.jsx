@@ -13,8 +13,8 @@ export function PrivacyPolicyPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
             <img
-              src="/branding/sips-logo-compact.png"
-              alt="SIPS Logo"
+              src="/branding/flash-logo-horizontal.png"
+              alt="FLASH Logo"
               className="h-9 w-auto object-contain"
             />
           </div>
@@ -143,7 +143,7 @@ export function PrivacyPolicyPage() {
       <footer className="border-t border-slate-200 bg-white py-8 text-xs text-slate-500">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 font-mono">
-            <img src="/branding/sips-mark.png" alt="SIPS Mark" className="w-4 h-4 object-contain" />
+            <img src="/branding/flash-logo-compact.png" alt="FLASH Mark" className="w-4 h-4 object-contain" />
             <span>SIPS Platform // Approved Baseline</span>
           </div>
           <div>© {new Date().getFullYear()} SIPS Institutional Placement Intelligence.</div>

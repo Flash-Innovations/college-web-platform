@@ -148,8 +148,8 @@ export function PublicStudentProfilePage() {
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
             <img
-              src="/branding/sips-logo-compact.png"
-              alt="SIPS - Skill Intelligence Placement System"
+              src="/branding/flash-logo-horizontal.png"
+              alt="FLASH"
               className="h-8 sm:h-9 w-auto max-w-[160px] sm:max-w-[190px] object-contain"
             />
             <span className="hidden sm:inline-flex text-[10px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">

@@ -38,12 +38,12 @@ export function AdminDashboard() {
   const basePath = isBranch
     ? "/branch"
     : isDept
-    ? "/dept"
-    : isCollege
-    ? "/college"
-    : location.pathname.startsWith("/admin")
-    ? "/admin"
-    : "/branch";
+      ? "/dept"
+      : isCollege
+        ? "/college"
+        : location.pathname.startsWith("/admin")
+          ? "/admin"
+          : "/branch";
 
   const [branches, setBranches] = useState([]);
   const [departmentInfo, setDepartmentInfo] = useState(null);
@@ -216,6 +216,7 @@ export function AdminDashboard() {
                   <tr>
                     <th className="py-3 px-4">Branch Name</th>
                     <th className="py-3 px-4">Code</th>
+
                     <th className="py-3 px-4">Coordinator</th>
                     <th className="py-3 px-4">Sign-in Username</th>
                     <th className="py-3 px-4">Coding Arena</th>

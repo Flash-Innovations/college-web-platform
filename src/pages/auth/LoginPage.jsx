@@ -222,13 +222,15 @@ export function LoginPage({ initialRegisterMode = false }) {
 
       {/* Header */}
       <header className="relative z-10 w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-600/25 border border-indigo-400/30">
-            <Building2 className="w-5 h-5 text-white" />
-          </div>
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
+          <img
+            src="/branding/flash-logo-compact.png"
+            alt="FLASH"
+            className="w-10 h-10 object-contain drop-shadow"
+          />
           <div>
             <span className="text-lg font-black tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-200 bg-clip-text text-transparent">
-              FLASH SIPS
+              FLASH
             </span>
             <span className="block text-[10px] font-semibold uppercase tracking-widest text-indigo-400/90 font-mono">
               Institutional Governance
